@@ -83,15 +83,11 @@ class StopOnTokens(StoppingCriteria):
         self.stop_token_ids = stop_token_ids
 
     def __call__(self, input_ids: torch.LongTensor, scores: torch.FloatTensor, **kwargs) -> bool:
-        """
-        Check if any of the stop token sequences are at the end of the current sequence of input IDs.
-
-        :param input_ids: torch.LongTensor representing the sequence of token IDs generated so far
-        :param scores: torch.FloatTensor representing the generation scores (unused in this criterion)
-        :return: True if stopping condition met, False otherwise
-        """
-        # Iterate over each set of stop token IDs
+        # Iterate over each stop token sequence
         for stop_ids in self.stop_token_ids:
-            if eq(input_ids[0][-len(stop_ids[0])+1:], stop_ids[0][1:]).all():
-                return True
+            # Ensure input_ids has enough tokens to compare with stop_ids
+            if input_ids.shape[1] >= stop_ids.shape[1]:
+                # Compare the last tokens of input_ids with the entire stop_ids sequence
+                if torch.equal(input_ids[0, -stop_ids.shape[1]:], stop_ids[0]):
+                    return True
         return False

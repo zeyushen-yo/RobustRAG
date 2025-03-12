@@ -1,0 +1,5 @@
+{
+    "dtype": "fp16",
+    "replace_method": "auto",
+    "replace_with_kernel_inject": true
+  }

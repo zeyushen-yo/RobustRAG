@@ -1,4 +1,4 @@
-__all__ = ['LLAMA_TMPL','MISTRAL_TMPL','GPT_TMPL','VICUNA_TMPL']
+__all__ = ['LLAMA_TMPL','MISTRAL_TMPL','GPT_TMPL','VICUNA_TMPL','DEEPSEEK_TMPL']
 
 
 
@@ -298,6 +298,21 @@ QA_PROMPT_LONG_HINTS = (
 
 #MULTIPLE_PROMPT_HINTS = '''You are a helpful assistant, Below, you will find the user's question accompanied by a series of hints. These hints are the aggregated outputs from various experts, ordered by their frequency. Your answer should be informative. \
 #\n\nQuery: [question]  \nAnswer the above question with the following word suggestions: [hints] '''
+
+DEEPSEEK_TMPL = {
+    'qa-mc': QA_MC_PROMPT_TMPL_LLAMA,
+    'qa-mc-zero': ZERO_QA_MC_PROMPT_TMPL, 
+
+    'qa': QA_PROMPT_TMPL,
+    'qa-zero': ZERO_QA_PROMPT_TMPL,
+    'qa-zero-decode': ZERO_QA_DECODE_PROMPT_TMPL,
+    'qa-hint':QA_PROMPT_HINTS_TMPL,
+
+    'qa-long':QA_PROMPT_LONG_TMPL,
+    'qa-long-zero':QA_PROMPT_LONG_ZERO_TMPL,
+    'qa-long-genhint-hint':QA_PROMPT_LONG_HINTS,
+    'qa-long-genhint':QA_PROMPT_LONG_GEN_HINTS,
+}
 
 LLAMA_TMPL = {
     'qa-mc': QA_MC_PROMPT_TMPL_LLAMA,

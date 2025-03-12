@@ -1,19 +1,10 @@
 import random
 class Attack:
-    def __init__(self, top_k, poison_num=1, repeat=5, poison_order= "backward"):
+    def __init__(self, top_k, repeat=5, poison_pos=0):
         self.top_k = top_k # number of top-k retrieved documents
-        self.poison_num = poison_num # number of poisoned documents
         self.repeat = repeat # number of times the poison is repeated in the document
         self.poison_loc = [0 for _ in range(top_k)] # no poison
-        if poison_order == "forward":
-            self.poison_loc = [1 for i in range(poison_num)] + [0 for i in range(top_k) if i >= poison_num]
-        elif poison_order == "backward":
-            self.poison_loc = [0 for i in range(top_k) if i >= poison_num] + [1 for i in range(poison_num)]
-        elif poison_order == "random":
-            self.poison_loc = [0 for i in range(top_k - poison_num)] + [1 for i in range(poison_num)]
-            random.shuffle(self.poison_loc)
-        else:
-            raise ValueError("poison_order must be 'forward', 'backward', or 'random'")
+        self.poison_loc[poison_pos] = 1
         
     def attack(self, data_item):
         raise NotImplementedError

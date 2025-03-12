@@ -67,9 +67,10 @@ class RRAG:
                 return True 
         return False
 
-class MajorityVoting(RRAG):
 
-    def query(self, data_item, corruption_size = 0):
+class WeightedMajorityVoting(RRAG):
+
+    def query(self, data_item, gamma = 1, corruption_size = 0):
         # assume the prompt ask the LLM to output A., B., C., D., or E. No information found
         seperate_responses = self.llm.batch_query(self.llm.wrap_prompt(data_item,as_multi_choice=True,seperate=True))
         seperate_preds = []
@@ -92,8 +93,14 @@ class MajorityVoting(RRAG):
 
         logger.debug(f'Seperate responses: {seperate_preds}')
 
-        cntr = Counter(seperate_preds)
-        del cntr['E.'] # do not count E. # we still append 'E.' to `seperate_preds` because it is useful for certification
+        cntr = defaultdict(float)
+
+        for i, pred in enumerate(seperate_preds):
+            if pred == 'E.':
+                continue
+            weight = gamma ** i  # First position weight=1, second=gamma, third=gamma^2, etc.
+            cntr[pred] += weight
+        cntr = Counter(cntr)
         cntr = cntr.most_common(2)
 
         # Decide final prediction (and also get certificate at the same time)
@@ -112,11 +119,11 @@ class MajorityVoting(RRAG):
                 certificate = delta > corruption_size # conservatively consider tie as non-robust -- can be improved later 
             else:
                 certificate = delta > 2*corruption_size
-        return pred,certificate
+        return pred,certificate        
 
 
 
-class KeywordAgg(RRAG):
+class WeightedKeywordAgg(RRAG):
 
     def __init__(self,llm,relative_threshold=0.3, absolute_threshold=3, abstention_threshold=1, longgen=False, certify_save_path=''):
         self.llm = llm
@@ -129,7 +136,7 @@ class KeywordAgg(RRAG):
         self.certify_save_path = certify_save_path # save all possible responses if needed
         logger.info(f'abs: {absolute_threshold}, relative: {relative_threshold}')
 
-    def query(self, data_item, corruption_size=0, abstention_threshold=None): 
+    def query(self, data_item, gamma = 1, corruption_size=0, abstention_threshold=None): 
         # if corruption_size > 0: we will do certification as well. 
         # otherwise, we only do inference. and the certification flag is always False
         certify_flg = False
@@ -148,7 +155,7 @@ class KeywordAgg(RRAG):
             if "I don't" in x:
                 abstained_idx.append(i)
             else:
-                seperate_responses.append(x)
+                seperate_responses.append((x, gamma ** i))
 
         logger.debug(f'Number of retained responses: {len(seperate_responses)}')
 
@@ -163,7 +170,7 @@ class KeywordAgg(RRAG):
         # extract keyword/keyphrase
         all_extracted_phrase = []
         token_counter = defaultdict(int)
-        for response in seperate_responses:
+        for response, weight in seperate_responses:
             doc = self.keyword_extractor(response)
             phrase_list = [response.strip()] 
             tmp = []
@@ -185,7 +192,7 @@ class KeywordAgg(RRAG):
             phrase_list = set(phrase_list) # only consider unique keywords
             all_extracted_phrase.append(phrase_list)
             for phrase in phrase_list:
-                token_counter[phrase]+=1
+                token_counter[phrase]+=weight
 
         # filtering 
         count_threshold = min(self.absolute,self.relative*len(seperate_responses))
@@ -322,12 +329,8 @@ def secure_decoding(
         max_length: Optional[int] = None,
         pad_token_id: Optional[int] = None,
         eos_token_id: Optional[Union[int, List[int]]] = None,
-        output_attentions: Optional[bool] = None,
-        output_hidden_states: Optional[bool] = None,
         output_scores: Optional[bool] = None,
         return_dict_in_generate: Optional[bool] = None,
-        #ab_record = None,
-        #corruption_size: Optional[int] = None,
         temperature: Optional[float] = 0.01,
         robust_agg: Optional[str] = 'mean',
         tokenizer: Optional = None,
@@ -352,16 +355,9 @@ def secure_decoding(
     generated_tokens = []
     ii = 0 
     while True:
-        ii+=1        
-        model_inputs = self.prepare_inputs_for_generation(input_ids, **model_kwargs)# this function is from huggingface model
-
-        # forward pass to get next token
-        outputs = self(
-            **model_inputs,
-            return_dict=True,
-            output_attentions=output_attentions,
-            output_hidden_states=output_hidden_states,
-        )
+        ii+=1  
+        with torch.no_grad():
+            outputs = self(input_ids, **model_kwargs)
 
         new_logits_full = outputs.logits[:, -1, :]  # last token prediction
         no_retrieval_token = new_logits_full[-1,:].argmax()
@@ -425,9 +421,6 @@ def secure_decoding_certify(
         max_length: Optional[int] = None,
         pad_token_id: Optional[int] = None,
         eos_token_id: Optional[Union[int, List[int]]] = None,
-        output_attentions: Optional[bool] = None,
-        output_hidden_states: Optional[bool] = None,
-        output_scores: Optional[bool] = None,
         return_dict_in_generate: Optional[bool] = None,
         ab_record = None,
         corruption_size: Optional[int] = None,
@@ -479,8 +472,8 @@ def secure_decoding_certify(
             model_kwargs = {'attention_mask': attention_mask, 'past_key_values': past_key_values}
         else:
             model_kwargs = {'attention_mask': attention_mask}
-        model_inputs = self.prepare_inputs_for_generation(input_ids, **model_kwargs)
-        outputs = self(**model_inputs, return_dict=True, output_attentions=None, output_hidden_states=None)
+        with torch.no_grad():
+            outputs = self(input_ids, **model_kwargs)
 
         new_logits_full = outputs.logits[:, -1, :]
 
@@ -500,7 +493,6 @@ def secure_decoding_certify(
         # Update the cache with new key values
         past_key_values = outputs.past_key_values
         
-        # 
         if INJECTION:
             non_abs_cnt = ab_record[:-corruption_size].sum().item()
             new_logits = new_logits[:non_abs_cnt]
@@ -557,7 +549,7 @@ def secure_decoding_certify(
     return all_outputs, True
 
 
-class DecodingAgg(RRAG):
+class WeightedDecodingAgg(RRAG):
     def __init__(self,llm, args, abstention_prob=None, robust_agg = "mean",certify_save_path='',eval_certify=None):
         self.llm = llm
         self.llm.model.secure_decoding_certify = secure_decoding_certify.__get__(self.llm.model, type(self.llm.model))
@@ -619,7 +611,7 @@ class DecodingAgg(RRAG):
         attention_mask = attention_mask[ab_record]
         return input_ids,attention_mask,ab_record
 
-    def query(self, data_item, corruption_size=1):
+    def query(self, data_item, gamma=1, corruption_size=1):
 
         input_ids,attention_mask,ab_record = self.preprocess_input(data_item)
 
@@ -646,17 +638,17 @@ class DecodingAgg(RRAG):
         
         generated_outputs = self.llm.model.secure_decoding(input_ids,
                             attention_mask=attention_mask,
-                            stopping_criteria = stopping_criteria,
-                            use_cache=True,
+                            stopping_criteria=stopping_criteria,
+                            use_cache=False,
                             pad_token_id=self.llm.tokenizer.pad_token_id,
                             eos_token_id=self.llm.tokenizer.eos_token_id,
-                            return_dict_in_generate=False,
+                            return_dict_in_generate=True,
                             #ab_record=ab_record,
                             #corruption_size=corruption_size,
                             temperature=self.temperature,
-                            robust_agg = self.robust_agg,
-                            tokenizer = self.llm.tokenizer,
-                            eta = self.eta
+                            robust_agg=self.robust_agg,
+                            tokenizer=self.llm.tokenizer,
+                            eta=self.eta
                             )
 
         generated_output_text = self.llm.tokenizer.decode(generated_outputs, skip_special_tokens=True)
@@ -686,10 +678,10 @@ class DecodingAgg(RRAG):
             outputs_local, certify_local = self.llm.model.secure_decoding_certify(input_ids,
                                     attention_mask=attention_mask,
                                     stopping_criteria=stopping_criteria,
-                                    use_cache=True,
+                                    use_cache=False,
                                     pad_token_id=self.llm.tokenizer.pad_token_id,
                                     eos_token_id=self.llm.tokenizer.eos_token_id,
-                                    return_dict_in_generate=False,
+                                    return_dict_in_generate=True,
                                     ab_record = ab_record,
                                     data_item = data_item, 
                                     corruption_size = corruption_size,
@@ -711,7 +703,5 @@ class DecodingAgg(RRAG):
             if self.eval_certify:
                 certify = all([self._eval_response(response,data_item) for response in response_list])
         return certify
-
-
 
 

@@ -9,12 +9,14 @@ from src.models import create_model
 from src.defense import *
 from src.attack import *
 from src.helper import get_log_name
+import matplotlib.pyplot as plt
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Robust RAG')
 
     # LLM settings
-    parser.add_argument('--model_name', type=str, default='mistral7b',choices=['mistral7b','llama7b','gpt3.5'],help='model name')
+    parser.add_argument("--local_rank", type=int, default=0, help="Local rank passed from distributed launcher")
+    parser.add_argument('--model_name', type=str, default='mistral7b',choices=['mistral7b','llama3b','gpt-4o','o1-mini','deepseek7b'],help='model name')
     parser.add_argument('--dataset_name', type=str, default='realtimeqa',choices=['realtimeqa-mc','realtimeqa','open_nq','biogen'],help='dataset name')
     parser.add_argument('--top_k', type=int, default=10,help='top k retrieval')
 
@@ -86,107 +88,133 @@ def main():
     no_defense = args.defense_method == 'none' or args.top_k<=0 # do not run defense
 
     # wrap LLM with the defense class
-    if args.defense_method == 'voting': # majority voting
+    if args.defense_method == 'voting': # weighted majority voting
         assert 'mc' in args.dataset_name
-        model = MajorityVoting(llm)
-    elif args.defense_method == 'keyword': # keyword aggregation
-        model = KeywordAgg(llm,relative_threshold=args.alpha,absolute_threshold=args.beta,longgen=longgen,certify_save_path=certify_save_path) 
+        model = WeightedMajorityVoting(llm)
+    elif args.defense_method == 'keyword': # weighted keyword aggregation
+        model = WeightedKeywordAgg(llm,relative_threshold=args.alpha,absolute_threshold=args.beta,longgen=longgen,certify_save_path=certify_save_path) 
     elif args.defense_method == 'decoding':
         if args.eta>0 and not longgen:
             logger.warning(f"using non-zero eta {args.eta} for QA")
         eval_certify = len(certify_save_path)==0
-        model = DecodingAgg(llm,args,eval_certify=eval_certify,certify_save_path=certify_save_path)
+        model = WeightedDecodingAgg(llm,args,eval_certify=eval_certify,certify_save_path=certify_save_path)
     else:
         model = RRAG(llm) # base class
 
     # init attack class
     no_attack = args.attack_method == 'none' or args.top_k<=0 # do not run attack
 
-    if no_attack:
-        pass
-    elif args.attack_method == 'PIA':
-        if args.dataset_name == 'biogen':
-            attacker = PIALONG(top_k = args.top_k, poison_num=args.corruption_size, repeat=3, poison_order= "backward")
-        else:
-            attacker = PIA(top_k = args.top_k, poison_num=args.corruption_size, repeat=10, poison_order= "backward")
-    elif args.attack_method == 'Poison':
-        if args.dataset_name == 'biogen':
-            attacker = PoisonLONG(top_k = args.top_k, poison_num=args.corruption_size, repeat=3, poison_order= "backward")
-        else:
-            attacker = Poison(top_k = args.top_k, poison_num=args.corruption_size, repeat=10, poison_order= "backward")
-    else:
-        NotImplementedError
+    gamma_values = [0.2, 0.4, 0.6, 0.8, 1.0]
+    robustness_all = {gamma: [] for gamma in gamma_values}
 
-    if not no_attack:
-        args.corruption_size = 0 # no certification for attack    # ad-hoc implementation -- tofix
+    for gamma in gamma_values:
+        for i in range(args.top_k):
+            if no_attack:
+                pass
+            elif args.attack_method == 'PIA':
+                if args.dataset_name == 'biogen':
+                    attacker = PIALONG(top_k = args.top_k, repeat=3, poison_pos = i)
+                else:
+                    attacker = PIA(top_k = args.top_k, repeat=10, poison_pos = i)
+            elif args.attack_method == 'Poison':
+                if args.dataset_name == 'biogen':
+                    attacker = PoisonLONG(top_k = args.top_k, repeat=3, poison_pos = i)
+                else:
+                    attacker = Poison(top_k = args.top_k, repeat=10, poison_pos = i)
+            else:
+                NotImplementedError
 
-    defended_corr_cnt = 0
-    undefended_corr_cnt = 0
-    certify_cnt = 0
-    undefended_asr_cnt = 0
-    defended_asr_cnt = 0
-    corr_list = []
-    response_list = []
-    for data_item in tqdm(data_tool.data[:100]):
-       
-        # clean data_item
-        data_item = data_tool.process_data_item(data_item)
-        # attack
-        if not no_attack:
-            data_item = attacker.attack(data_item)
-        
-        # undefended
-        if not args.no_vanilla:
-            response_undefended = model.query_undefended(data_item)
-            undefended_corr = data_tool.eval_response(response_undefended,data_item)
-            undefended_corr_cnt += undefended_corr
-        else:
-            response_undefended = ''
-            undefended_corr = False
-
-        # undefended with asr
-        if not no_attack:
-            undefended_asr = data_tool.eval_response_asr(response_undefended,data_item)
-            undefended_asr_cnt += undefended_asr
-        
-        response_list.append({"query":data_item["question"],"undefended":response_undefended})
-        
-        # defended
-        if not no_defense: 
-            response_defended,certificate = model.query(data_item,corruption_size=args.corruption_size)
-            defended_corr = data_tool.eval_response(response_defended,data_item)
-            defended_corr_cnt += defended_corr
-            certify_cnt += (defended_corr and certificate)
             if not no_attack:
-                defended_asr = data_tool.eval_response_asr(response_defended,data_item)
-                defended_asr_cnt += defended_asr
-            response_list.append({"query":data_item["question"],"defended":response_defended})
-            corr_list.append(defended_corr and certificate)
+                args.corruption_size = 0 # no certification for attack    # ad-hoc implementation -- tofix
 
-    logger.info(f'undefended_corr_cnt: {undefended_corr_cnt}')
-    logger.info(f'defended_corr_cnt: {defended_corr_cnt}')
-    logger.info(f'certify_cnt: {certify_cnt}')
+            defended_corr_cnt = 0
+            undefended_corr_cnt = 0
+            certify_cnt = 0
+            undefended_asr_cnt = 0
+            defended_asr_cnt = 0
+            corr_list = []
+            response_list = []
+            for data_item in tqdm(data_tool.data):
+            
+                # clean data_item
+                data_item = data_tool.process_data_item(data_item)
+                # attack
+                if not no_attack:
+                    data_item = attacker.attack(data_item)
+                
+                # undefended
+                if not args.no_vanilla:
+                    response_undefended = model.query_undefended(data_item)
+                    undefended_corr = data_tool.eval_response(response_undefended,data_item)
+                    undefended_corr_cnt += undefended_corr
+                else:
+                    response_undefended = ''
+                    undefended_corr = False
+
+                # undefended with asr
+                if not no_attack:
+                    undefended_asr = data_tool.eval_response_asr(response_undefended,data_item)
+                    undefended_asr_cnt += undefended_asr
+                
+                response_list.append({"query":data_item["question"],"undefended":response_undefended})
+                
+                # defended
+                if not no_defense: 
+                    response_defended,certificate = model.query(data_item, gamma=gamma, corruption_size=args.corruption_size)
+                    defended_corr = data_tool.eval_response(response_defended,data_item)
+                    defended_corr_cnt += defended_corr
+                    certify_cnt += (defended_corr and certificate)
+                    if not no_attack:
+                        defended_asr = data_tool.eval_response_asr(response_defended,data_item)
+                        defended_asr_cnt += defended_asr
+                    response_list.append({"query":data_item["question"],"defended":response_defended})
+                    corr_list.append(defended_corr and certificate)
+
+            logger.info(f'undefended_corr_cnt: {undefended_corr_cnt}')
+            logger.info(f'defended_corr_cnt: {defended_corr_cnt}')
+            logger.info(f'certify_cnt: {certify_cnt}')
 
 
-    if not no_attack:
-        logger.info(f'######################## ASR ########################')
-        logger.info(f'undefended_asr_cnt: {undefended_asr_cnt}')
-        logger.info(f'defended_asr_cnt: {defended_asr_cnt}')
+            if not no_attack:
+                logger.info(f'######################## ASR ########################')
+                logger.info(f'undefended_asr_cnt: {undefended_asr_cnt}')
+                logger.info(f'defended_asr_cnt: {defended_asr_cnt}')
 
 
-    # save for later analysis, currently used for biogen dataset 
-    if args.save_response:
-        os.makedirs(f'result/{args.dataset_name}',exist_ok=True)
-        if args.defense_method == 'keyword':
-            with open(f'result/{LOG_NAME}.json','w') as f:
-                json.dump(response_list,f,indent=4)
-        else:
-            with open(f'result/{LOG_NAME}.json','w') as f:
-                json.dump(response_list,f,indent=4)
+            # save for later analysis, currently used for biogen dataset 
+            if args.save_response:
+                os.makedirs(f'result/{args.dataset_name}',exist_ok=True)
+                if args.defense_method == 'keyword':
+                    with open(f'result/{LOG_NAME}.json','w') as f:
+                        json.dump(response_list,f,indent=4)
+                else:
+                    with open(f'result/{LOG_NAME}.json','w') as f:
+                        json.dump(response_list,f,indent=4)
 
 
-    if args.use_cache:
-        llm.dump_cache()
+            if args.use_cache:
+                llm.dump_cache()
+            
+            robustness_value = defended_asr_cnt / len(data_tool.data)
+            robustness_all[gamma].append(robustness_value)
+
+    plt.figure(figsize=(10, 6))
+    x_values = list(range(1, args.top_k + 1))
+    for gamma in gamma_values:
+        plt.plot(x_values, robustness_all[gamma], marker='o', label=f'γ = {gamma}')
+    
+    plt.xlabel("Rank", fontsize=14)
+    plt.ylabel("Robustness", fontsize=14)
+    plt.title("Rank vs Robustness for Different γ Values", fontsize=16)
+    plt.xlim(1, args.top_k)
+    plt.ylim(0, 1) 
+    plt.legend(fontsize=12)
+    plt.grid(True, linestyle='--', alpha=0.7)
+    plt.tight_layout()
+    
+    os.makedirs('figs', exist_ok=True)
+    plt.savefig(f"figs/{LOG_NAME}_gamma.png", dpi=300)
+    plt.show()
 
 if __name__ == '__main__':
     main()

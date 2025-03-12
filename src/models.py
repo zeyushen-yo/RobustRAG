@@ -13,47 +13,40 @@ import litellm
 from litellm import batch_completion
 from openai import OpenAI
 import os 
-# os.environ["OPENAI_API_KEY"] = ""
+import json
 import joblib
 from .prompt_template import *
 MAX_NEW_TOKENS = 20
-CONTEXT_MAX_TOKENS = {'mistralai/Mistral-7B-Instruct-v0.2': 8192, 
-                      'meta-llama/Llama-2-7b-chat-hf': 4096, 
-                      'meta-llama/Llama-2-13b-chat-hf': 4096,
-                      'meta-llama/Meta-Llama-3-8B-Instruct': 8192, 
-                      'mistralai/Mixtral-8x7B-Instruct-v0.1': 32000,
-                      'gpt-3.5-turbo-0125':16385,
-                      'gpt-4-0125-preview':128000,
-                      'lmsys/vicuna-7b-v1.5': 4096,
-                      'lmsys/vicuna-13b-v1.5': 4096}
+CONTEXT_MAX_TOKENS = {'/scratch/gpfs/zs7353/Mistral-7B-Instruct-v0.2': 8192, 
+                      '/scratch/gpfs/zs7353/Llama-3.2-3B-Instruct': 4096, 
+                      '/scratch/gpfs/zs7353/Llama-3.1-8B-Instruct': 8192, 
+                      '/scratch/gpfs/zs7353/Mixtral-8x7B-Instruct-v0.1': 32000,
+                      '/scratch/gpfs/zs7353/DeepSeek-R1-Distill-Qwen-7B': 8192,
+                      'gpt-4o':8192,
+                      'o1-mini':8192,
+                      '/scratch/gpfs/zs7353/vicuna-7b-v1.5': 4096,
+                      '/scratch/gpfs/zs7353/vicuna-13b-v1.5': 4096}
 
 
 def create_model(model_name,**kwargs):
     if model_name == 'mistral7b':
-        return HFModel('mistralai/Mistral-7B-Instruct-v0.2',MISTRAL_TMPL,**kwargs) 
-    elif model_name == 'llama7b':
-        return HFModel('meta-llama/Llama-2-7b-chat-hf',LLAMA_TMPL,**kwargs) 
-    elif model_name == 'gpt3.5':
-        return GPTModel('gpt-3.5-turbo-0125', GPT_TMPL, **kwargs) 
-    # some other models that are not included in the paper
+        return HFModel('/scratch/gpfs/zs7353/Mistral-7B-Instruct-v0.2',MISTRAL_TMPL,**kwargs) 
+    elif model_name == 'deepseek7b':
+        return HFModel('/scratch/gpfs/zs7353/DeepSeek-R1-Distill-Qwen-7B',DEEPSEEK_TMPL,**kwargs)
+    elif model_name == 'llama3b':
+        return HFModel('/scratch/gpfs/zs7353/Llama-3.2-3B-Instruct',LLAMA_TMPL,**kwargs) 
+    elif model_name == 'gpt-4o':
+        return GPTModel('gpt-4o', GPT_TMPL, **kwargs) 
     elif model_name == 'llama8b':
-        return HFModel('meta-llama/Meta-Llama-3-8B-Instruct',LLAMA_TMPL,**kwargs)
-    elif model_name == 'llama13b':
-        return HFModel('meta-llama/Llama-2-13b-chat-hf',LLAMA_TMPL,**kwargs) 
+        return HFModel('/scratch/gpfs/zs7353/Llama-3.1-8B-Instruct',LLAMA_TMPL,**kwargs) 
     elif model_name == 'vicuna7b':
-        return HFModel('lmsys/vicuna-7b-v1.5',VICUNA_TMPL,**kwargs)  
+        return HFModel('/scratch/gpfs/zs7353/vicuna-7b-v1.5',VICUNA_TMPL,**kwargs)  
     elif model_name == 'vicuna13b':
-        return HFModel('lmsys/vicuna-13b-v1.5',VICUNA_TMPL,**kwargs)  
+        return HFModel('/scratch/gpfs/zs7353/vicuna-13b-v1.5',VICUNA_TMPL,**kwargs)  
     elif model_name == 'mixtral8x7b':
-        return HFModel('mistralai/Mixtral-8x7B-Instruct-v0.1',MISTRAL_TMPL,**kwargs) 
-    elif model_name == 'mixtral8x22b':
-        return HFModel('mistralai/Mixtral-8x22B-Instruct-v0.1',MISTRAL_TMPL,**kwargs) 
-    elif model_name == 'commandr':
-        return HFModel('CohereForAI/c4ai-command-r-v01', MISTRAL_TMPL, **kwargs)
-    elif model_name == 'commandr4':
-        return HFModel('CohereForAI/c4ai-command-r-v01-4bit', MISTRAL_TMPL, **kwargs)
-    elif model_name == 'gpt4':
-        return GPTModel('gpt-4-0125-preview', GPT_TMPL, **kwargs) 
+        return HFModel('/scratch/gpfs/zs7353/Mixtral-8x7B-Instruct-v0.1',MISTRAL_TMPL,**kwargs) 
+    elif model_name == 'o1-mini':
+        return GPTModel('o1-mini', GPT_TMPL, **kwargs) 
     else:
         raise NotImplementedError
 
@@ -190,10 +183,8 @@ class BaseModel:
             return fill_template(template,question,context_str,choices,use_retrieval,as_multi_choice,hints)
 
 
-
-
 class HFModel(BaseModel):
-    def __init__(self, model_name, prompt_template, cache_path = None,max_output_tokens=None, **kwargs):
+    def __init__(self, model_name, prompt_template, cache_path=None, max_output_tokens=None, **kwargs):
         super().__init__(cache_path)
         # set max number of output tokens
         self.max_output_tokens = MAX_NEW_TOKENS if max_output_tokens is None else max_output_tokens 
@@ -204,8 +195,8 @@ class HFModel(BaseModel):
             #'CohereForCausalLM' object has no attribute 'torch_dtype'
             self.model = AutoModelForCausalLM.from_pretrained(model_name,**kwargs) 
         else:
-            self.model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.bfloat16, device_map='auto',**kwargs)
-
+            self.model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.bfloat16, device_map='cuda',**kwargs)
+        
         self.prompt_template = prompt_template
         self.tokenizer.padding_side = "left"
         self.tokenizer.pad_token = self.tokenizer.eos_token
@@ -249,7 +240,6 @@ class HFModel(BaseModel):
 
     def _batch_query(self, prompt_list):
         # get a list of text prompts as input and return a list text responses
-
         inputs = self.tokenizer(prompt_list, return_tensors="pt",
                                     padding=True, 
                                     #padding='max_length',
@@ -263,8 +253,6 @@ class HFModel(BaseModel):
         return results
 
 
-
-
 class GPTModel(BaseModel):
     def __init__(self, model_name, prompt_template, cache_path=None,max_output_tokens=None, **kwargs):
         super().__init__(cache_path)
@@ -272,24 +260,30 @@ class GPTModel(BaseModel):
         self.prompt_template = prompt_template
         self.temperature = 0
         self.max_output_tokens = MAX_NEW_TOKENS if max_output_tokens is None else max_output_tokens
-        self.client = OpenAI()
+        self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
 
-
-
-    def _query(self, prompt): # for now, I will just make implementation to work
-
-
+    def _query(self, prompt): 
         try:
-            completion = self.client.chat.completions.create(
-                model=self.model_name,
-                temperature=self.temperature,
-                max_tokens=self.max_output_tokens,
-                messages=[
-                    {"role": "system", "content": "You are a helpful assistant."},
-                    {"role": "user", "content": prompt}
-                ],
-            )
-            response = completion.choices[0].message.content
+            if self.model_name == "o3-mini" or self.model_name == "o1-mini" or self.model_name == "o1":
+                chat = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    max_completion_tokens=self.max_output_tokens
+                )   
+            else:
+                chat = self.client.chat.completions.create(
+                    model=self.model_name,
+                    messages=[
+                        {"role": "system", "content": "You are a helpful assistant."},
+                        {"role": "user", "content": prompt}
+                    ],
+                    temperature=self.temperature,
+                    max_tokens=self.max_output_tokens
+                )
+            response = chat.choices[0].message.content
         except Exception as e:
             print(e)
             response = ""
