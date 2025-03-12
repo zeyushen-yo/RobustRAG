@@ -107,7 +107,10 @@ def main():
     # init attack class
     no_attack = args.attack_method == 'none' or args.top_k<=0 # do not run attack
 
-    gamma_values = [0.2, 0.4, 0.6, 0.8, 1.0]
+    if args.defense_method == 'greedy':
+        gamma_values = [1] # dummy. gamma is not useful in this case
+    else:
+        gamma_values = [0.2, 0.4, 0.6, 0.8, 1.0]
     rep = 10
 
     robustness_all = {gamma: [] for gamma in gamma_values}
@@ -167,15 +170,25 @@ def main():
                 # defended
                 if not no_defense: 
                     for _ in range(rep):
-                        response_defended,certificate = model.query(data_item, gamma=gamma, corruption_size=args.corruption_size)
-                        defended_corr = data_tool.eval_response(response_defended,data_item)
-                        defended_corr_cnt += defended_corr
-                        certify_cnt += (defended_corr and certificate)
-                        if not no_attack:
-                            defended_asr = data_tool.eval_response_asr(response_defended,data_item)
-                            defended_asr_cnt += defended_asr
-                        response_list.append({"query":data_item["question"],"defended":response_defended})
-                        corr_list.append(defended_corr and certificate)
+                        if args.defense_method == 'greedy':
+                            response_defended,flagg_docs = model.query(data_item)
+                            defended_corr = data_tool.eval_response(response_defended,data_item)
+                            defended_corr_cnt += defended_corr
+                            if not no_attack:
+                                defended_asr = data_tool.eval_response_asr(response_defended,data_item)
+                                defended_asr_cnt += defended_asr
+                            response_list.append({"query":data_item["question"],"defended":response_defended})
+                            print(i in flagg_docs)
+                        else:                      
+                            response_defended,certificate = model.query(data_item, gamma=gamma, corruption_size=args.corruption_size)
+                            defended_corr = data_tool.eval_response(response_defended,data_item)
+                            defended_corr_cnt += defended_corr
+                            certify_cnt += (defended_corr and certificate)
+                            if not no_attack:
+                                defended_asr = data_tool.eval_response_asr(response_defended,data_item)
+                                defended_asr_cnt += defended_asr
+                            response_list.append({"query":data_item["question"],"defended":response_defended})
+                            corr_list.append(defended_corr and certificate)
 
             logger.info(f'undefended_corr_cnt: {undefended_corr_cnt}')
             logger.info(f'defended_corr_cnt: {defended_corr_cnt}')
@@ -208,7 +221,10 @@ def main():
     plt.figure(figsize=(10, 6))
     x_values = list(range(1, args.top_k + 1))
     for gamma in gamma_values:
-        plt.plot(x_values, robustness_all[gamma], marker='o', label=f'γ = {gamma}')
+        if args.defense_method == 'greedy':
+            plt.plot(x_values, robustness_all[gamma], marker='o')
+        else:
+            plt.plot(x_values, robustness_all[gamma], marker='o', label=f'γ = {gamma}')
     
     plt.xlabel("Rank", fontsize=14)
     plt.ylabel("Robustness", fontsize=14)
