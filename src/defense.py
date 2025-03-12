@@ -643,8 +643,6 @@ class WeightedDecodingAgg(RRAG):
                             pad_token_id=self.llm.tokenizer.pad_token_id,
                             eos_token_id=self.llm.tokenizer.eos_token_id,
                             return_dict_in_generate=True,
-                            #ab_record=ab_record,
-                            #corruption_size=corruption_size,
                             temperature=self.temperature,
                             robust_agg=self.robust_agg,
                             tokenizer=self.llm.tokenizer,
@@ -705,3 +703,188 @@ class WeightedDecodingAgg(RRAG):
         return certify
 
 
+
+@torch.no_grad()
+def greedy_rag_decoding(
+        self,
+        question: str,
+        documents: List[str],
+        logits_processor: Optional[LogitsProcessorList] = None,
+        stopping_criteria: Optional[StoppingCriteriaList] = None,
+        max_new_tokens: Optional[int] = None,
+        pad_token_id: Optional[int] = None,
+        eos_token_id: Optional[Union[int, List[int]]] = None,
+        output_scores: Optional[bool] = None,
+        return_dict_in_generate: Optional[bool] = None,
+        temperature: Optional[float] = 0.01,
+        robust_agg: Optional[str] = 'mean',
+        tokenizer: Optional = None,
+        eta: Optional[float] = 1.0,
+        malicious_threshold: Optional[float] = 0.1,
+        **model_kwargs,
+):
+
+    stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
+    pad_token_id = pad_token_id if pad_token_id is not None else self.generation_config.pad_token_id
+    if isinstance(eos_token_id, int):
+        eos_token_id = [eos_token_id]
+    eos_token_id_tensor = torch.tensor(eos_token_id).to(tokenizer.device) if eos_token_id is not None else None
+
+    generated_tokens = []
+    r_star = ""  # current generated response.
+    current_doc_count = 1  # start with the most trustworthy document only.
+    flagged_docs = []    # keep track of suspicious documents
+
+    for step in range(max_new_tokens):
+        # Build prompts for current decoding step.
+        # For each retrieved document, we concatenate the question, the document, and the generated response so far.
+        retrieval_prompts = [question + " " + doc + " " + r_star for doc in documents[:current_doc_count]]
+        # The no-retrieval prompt is just the question plus what we’ve generated so far.
+        no_retrieval_prompt = question + " " + r_star
+        batch_prompts = retrieval_prompts + [no_retrieval_prompt]
+        tokenized = tokenizer(batch_prompts, return_tensors="pt", padding=True)
+        tokenized = {k: v.to(next(self.parameters()).device) for k, v in tokenized.items()}
+        model_kwargs["attention_mask"] = tokenized["attention_mask"]
+
+        outputs = self(input_ids=tokenized["input_ids"], **model_kwargs)
+        # Obtain logits for the last token from each prompt.
+        logits = outputs.logits[:, -1, :]  # shape: (batch, vocab_size)
+        no_retrieval_logits = logits[-1]    # last row corresponds to no-retrieval
+
+        # Compute softmaxed probabilities (with temperature scaling) for the retrieval prompts.
+        retrieved_logits = logits[:-1]  # exclude the no-retrieval prompt.
+        probs = torch.nn.functional.softmax(retrieved_logits / temperature, dim=-1)
+        if robust_agg == 'mean':
+            aggregated = torch.mean(probs, dim=0)
+        elif robust_agg == 'sum':
+            aggregated = torch.sum(probs, dim=0)
+        elif robust_agg == 'median':
+            aggregated = torch.median(probs, dim=0).values
+        else:
+            raise NotImplementedError("Aggregation method not implemented")
+
+        # Get top-2 tokens from the aggregated probability distribution.
+        top2 = torch.topk(aggregated, 2)
+        if top2.values[0] - top2.values[1] > eta:
+            # Confident prediction: select the top token.
+            selected_token = top2.indices[0].unsqueeze(0)
+        else:
+            # Not decisive: if we have more documents, try to incorporate the next one.
+            if current_doc_count < len(documents):
+                old_aggregated = aggregated.clone()
+                current_doc_count += 1
+                # Rebuild the retrieval prompts with one additional document.
+                retrieval_prompts_new = [question + " " + doc + " " + r_star for doc in documents[:current_doc_count]]
+                batch_prompts_new = retrieval_prompts_new + [no_retrieval_prompt]
+                tokenized_new = tokenizer(batch_prompts_new, return_tensors="pt", padding=True)
+                tokenized_new = {k: v.to(next(self.parameters()).device) for k, v in tokenized_new.items()}
+                model_kwargs["attention_mask"] = tokenized_new["attention_mask"]
+                outputs_new = self(input_ids=tokenized_new["input_ids"], **model_kwargs)
+                logits_new = outputs_new.logits[:, -1, :]
+                retrieved_logits_new = logits_new[:-1]
+                new_probs = torch.nn.functional.softmax(retrieved_logits_new / temperature, dim=-1)
+                if robust_agg == 'mean':
+                    new_aggregated = torch.mean(new_probs, dim=0)
+                elif robust_agg == 'sum':
+                    new_aggregated = torch.sum(new_probs, dim=0)
+                elif robust_agg == 'median':
+                    new_aggregated = torch.median(new_probs, dim=0).values
+                # Check how much the new document changes the aggregated distribution.
+                diff = torch.norm(new_aggregated - old_aggregated, p=1)
+                if diff > malicious_threshold:
+                    # Flag the newly added document (its index is current_doc_count-1).
+                    flagged_docs.append(current_doc_count - 1)
+                aggregated = new_aggregated
+                top2 = torch.topk(aggregated, 2)
+                if top2.values[0] - top2.values[1] > eta:
+                    selected_token = top2.indices[0].unsqueeze(0)
+                else:
+                    # Even after adding a document the tie persists, so we fall back.
+                    selected_token = no_retrieval_logits.argmax().unsqueeze(0)
+            else:
+                # No more documents to add; fall back to the no-retrieval prompt.
+                selected_token = no_retrieval_logits.argmax().unsqueeze(0)
+
+        # Append the chosen token to our generated response.
+        generated_tokens.append(selected_token.item())
+        token_str = tokenizer.decode(selected_token)
+        r_star += token_str
+
+        new_cur_len = tokenized["input_ids"].shape[-1] + 1
+        if "past_key_values" in outputs:
+            outputs.past_key_values = _crop_past_key_values(self, outputs.past_key_values, new_cur_len - 1)
+            model_kwargs["past_key_values"] = outputs.past_key_values
+            model_kwargs["attention_mask"] = torch.cat(
+                [model_kwargs["attention_mask"], torch.ones_like(model_kwargs["attention_mask"][:, :1])],
+                dim=-1
+            )
+
+        if eos_token_id_tensor is not None and (selected_token == eos_token_id_tensor.item()).any():
+            break
+        if all(stopping_criteria(tokenized["input_ids"], None)):
+            break
+
+    return generated_tokens, flagged_docs
+
+
+class GreedyRAG(RRAG):
+    def __init__(self, llm, args, malicious_threshold=0.1):
+        self.llm = llm
+        self.llm.model.greedy_rag_decoding = greedy_rag_decoding.__get__(self.llm.model, type(self.llm.model))
+        self.eta = args.eta
+        self.malicious_threshold = malicious_threshold
+        self.args = args
+
+    def preprocess_input(self, data_item):
+        """
+        Expects data_item to be a dict with keys:
+          - "question": the query text.
+          - "documents": a list of document strings (sorted by trustworthiness).
+        Constructs initial prompts for the retrieval and no-retrieval cases.
+        """
+        question = data_item["question"]
+        documents = data_item.get["topk_content"]
+        # Build initial prompts.
+        retrieval_prompt = question + " " + documents[0]
+        no_retrieval_prompt = question
+        tokenized_retrieval = self.llm.tokenizer(retrieval_prompt, return_tensors="pt", padding=True)
+        tokenized_no_retrieval = self.llm.tokenizer(no_retrieval_prompt, return_tensors="pt", padding=True)
+        # We stack the retrieval prompt (using only the top doc) and the no-retrieval prompt.
+        input_ids = torch.cat([tokenized_retrieval.input_ids, tokenized_no_retrieval.input_ids], dim=0).to("cuda")
+        attention_mask = torch.cat([tokenized_retrieval.attention_mask, tokenized_no_retrieval.attention_mask], dim=0).to("cuda")
+        return question, documents, input_ids, attention_mask
+
+    def query(self, data_item):
+        question, documents, input_ids, attention_mask = self.preprocess_input(data_item)
+        max_new_tokens = self.args.max_output_tokens
+
+        stop_list = ["\n#", "\n##","\n###","\n####","\n#####"] + ["\n\n"] ################ seems to work fine
+        stop_token_ids = [self.llm.tokenizer(x, return_tensors='pt', add_special_tokens=False)['input_ids'] for x in stop_list]
+        stop_token_ids = [LongTensor(x).to("cuda") for x in stop_token_ids]
+        stopping_criteria = StoppingCriteriaList([
+            MaxLengthCriteria(max_length=len(input_ids[0]) + self.llm.max_output_tokens),
+            StopOnTokens(stop_token_ids=stop_token_ids)
+        ])
+
+        generated_tokens, flagged_docs = self.llm.model.greedy_rag_decoding(
+            question=question,
+            documents=documents,
+            attention_mask=attention_mask,
+            stopping_criteria=stopping_criteria,
+            pad_token_id=self.llm.tokenizer.pad_token_id,
+            eos_token_id=self.llm.tokenizer.eos_token_id,
+            return_dict_in_generate=True,
+            temperature=0.01,
+            robust_agg="mean",
+            tokenizer=self.llm.tokenizer,
+            eta=self.eta,
+            malicious_threshold=self.malicious_threshold,
+            max_new_tokens=max_new_tokens,
+            use_cache=False,
+        )
+        generated_output_text = self.llm.tokenizer.decode(generated_tokens, skip_special_tokens=True)
+        return generated_output_text, flagged_docs
+
+    # dummy, not consider certification for now
+    def certify(self, data_item, corruption_size):
+        return False

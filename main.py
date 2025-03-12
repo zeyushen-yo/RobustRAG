@@ -24,7 +24,7 @@ def parse_args():
     parser.add_argument('--attack_method', type=str, default='none',choices=['none','Poison','PIA'], help='The attack method to use (Poison or Prompt Injection)')
 
     # defense
-    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding'],help='The defense method to use')
+    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding','greedy'],help='The defense method to use')
     parser.add_argument('--alpha', type=float, default=0.3, help='keyword filtering threshold alpha')
     parser.add_argument('--beta', type=float, default=3.0, help='keyword filtering threshold beta')
     parser.add_argument('--eta', type=float, default=0.0, help='decoding confidence threshold eta')
@@ -98,6 +98,9 @@ def main():
             logger.warning(f"using non-zero eta {args.eta} for QA")
         eval_certify = len(certify_save_path)==0
         model = WeightedDecodingAgg(llm,args,eval_certify=eval_certify,certify_save_path=certify_save_path)
+    elif args.defense_method == 'greedy':
+        # TODO: change malicious_threshold to a command line argument
+        model = GreedyRAG(llm, args, malicious_threshold=0.1)
     else:
         model = RRAG(llm) # base class
 
@@ -105,6 +108,8 @@ def main():
     no_attack = args.attack_method == 'none' or args.top_k<=0 # do not run attack
 
     gamma_values = [0.2, 0.4, 0.6, 0.8, 1.0]
+    rep = 10
+
     robustness_all = {gamma: [] for gamma in gamma_values}
 
     for gamma in gamma_values:
@@ -144,9 +149,10 @@ def main():
                 
                 # undefended
                 if not args.no_vanilla:
-                    response_undefended = model.query_undefended(data_item)
-                    undefended_corr = data_tool.eval_response(response_undefended,data_item)
-                    undefended_corr_cnt += undefended_corr
+                    for _ in range(rep):
+                        response_undefended = model.query_undefended(data_item)
+                        undefended_corr = data_tool.eval_response(response_undefended,data_item)
+                        undefended_corr_cnt += undefended_corr
                 else:
                     response_undefended = ''
                     undefended_corr = False
@@ -160,15 +166,16 @@ def main():
                 
                 # defended
                 if not no_defense: 
-                    response_defended,certificate = model.query(data_item, gamma=gamma, corruption_size=args.corruption_size)
-                    defended_corr = data_tool.eval_response(response_defended,data_item)
-                    defended_corr_cnt += defended_corr
-                    certify_cnt += (defended_corr and certificate)
-                    if not no_attack:
-                        defended_asr = data_tool.eval_response_asr(response_defended,data_item)
-                        defended_asr_cnt += defended_asr
-                    response_list.append({"query":data_item["question"],"defended":response_defended})
-                    corr_list.append(defended_corr and certificate)
+                    for _ in range(rep):
+                        response_defended,certificate = model.query(data_item, gamma=gamma, corruption_size=args.corruption_size)
+                        defended_corr = data_tool.eval_response(response_defended,data_item)
+                        defended_corr_cnt += defended_corr
+                        certify_cnt += (defended_corr and certificate)
+                        if not no_attack:
+                            defended_asr = data_tool.eval_response_asr(response_defended,data_item)
+                            defended_asr_cnt += defended_asr
+                        response_list.append({"query":data_item["question"],"defended":response_defended})
+                        corr_list.append(defended_corr and certificate)
 
             logger.info(f'undefended_corr_cnt: {undefended_corr_cnt}')
             logger.info(f'defended_corr_cnt: {defended_corr_cnt}')
@@ -195,7 +202,7 @@ def main():
             if args.use_cache:
                 llm.dump_cache()
             
-            robustness_value = defended_asr_cnt / len(data_tool.data)
+            robustness_value = defended_asr_cnt / (len(data_tool.data) * rep)
             robustness_all[gamma].append(robustness_value)
 
     plt.figure(figsize=(10, 6))
@@ -212,7 +219,6 @@ def main():
     plt.grid(True, linestyle='--', alpha=0.7)
     plt.tight_layout()
     
-    os.makedirs('figs', exist_ok=True)
     plt.savefig(f"figs/{LOG_NAME}_gamma.png", dpi=300)
     plt.show()
 

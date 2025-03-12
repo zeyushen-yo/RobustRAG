@@ -3,6 +3,7 @@ from transformers import LlamaTokenizer, LlamaForCausalLM
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers import StoppingCriteriaList
 from .helper import StopOnTokens
+import deepspeed
 
 from torch import LongTensor, FloatTensor
 
@@ -201,6 +202,18 @@ class HFModel(BaseModel):
         self.tokenizer.padding_side = "left"
         self.tokenizer.pad_token = self.tokenizer.eos_token
         self.model_name = model_name
+
+        with open("configs/ds_config.json", 'r') as f:
+            ds_config = json.load(f)
+
+        if "Llama" not in self.model_name:
+            self.model = deepspeed.init_inference(
+                self.model,
+                config=ds_config,
+                mp_size=4,    
+                max_tokens=8192,
+                replace_method="auto"
+            )
 
         self.generation_kwargs = {
             'max_new_tokens':self.max_output_tokens,
