@@ -126,3 +126,13 @@
 # python main.py --model_name llama3b --dataset_name open_nq --top_k 10 --defense_method keyword --corruption_size 1 --alpha 0.3 --beta 3 --attack_method Poison 
 # python main.py --model_name gpt-4o --dataset_name open_nq --top_k 10 --defense_method keyword --corruption_size 1 --alpha 0.3 --beta 3 --attack_method PIA 
 # python main.py --model_name gpt-4o --dataset_name open_nq --top_k 10 --defense_method keyword --corruption_size 1 --alpha 0.3 --beta 3 --attack_method Poison 
+
+# greedy
+# python main.py --model_name mistral7b --dataset_name realtimeqa --top_k 10 --defense_method greedy --corruption_size 1 --eta 0.0 --attack_method PIA 
+# python main.py --model_name mistral7b --dataset_name realtimeqa --top_k 10 --defense_method greedy --corruption_size 1 --eta 0.0 --attack_method Poison 
+python main.py --model_name llama3b --dataset_name realtimeqa --top_k 10 --defense_method greedy --corruption_size 1 --eta 0.0 --attack_method PIA 
+# python main.py --model_name llama3b --dataset_name realtimeqa --top_k 10 --defense_method greedy --corruption_size 1 --eta 0.0 --attack_method Poison 
+# python main.py --model_name mistral7b --dataset_name open_nq --top_k 10 --defense_method greedy --corruption_size 1 --eta 0.0 --attack_method PIA 
+# python main.py --model_name mistral7b --dataset_name open_nq --top_k 10 --defense_method greedy --corruption_size 1 --eta 0.0 --attack_method Poison 
+# python main.py --model_name llama3b --dataset_name open_nq --top_k 10 --defense_method greedy --corruption_size 1 --eta 0.0 --attack_method PIA 
+# python main.py --model_name llama3b --dataset_name open_nq --top_k 10 --defense_method greedy --corruption_size 1 --eta 0.0 --attack_method Poison 

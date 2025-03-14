@@ -25,8 +25,7 @@ CONTEXT_MAX_TOKENS = {'/scratch/gpfs/zs7353/Mistral-7B-Instruct-v0.2': 8192,
                       '/scratch/gpfs/zs7353/DeepSeek-R1-Distill-Qwen-7B': 8192,
                       'gpt-4o':8192,
                       'o1-mini':8192,
-                      '/scratch/gpfs/zs7353/vicuna-7b-v1.5': 4096,
-                      '/scratch/gpfs/zs7353/vicuna-13b-v1.5': 4096}
+                      '/scratch/gpfs/zs7353/vicuna-7b-v1.5': 4096}
 
 
 def create_model(model_name,**kwargs):
@@ -42,8 +41,6 @@ def create_model(model_name,**kwargs):
         return HFModel('/scratch/gpfs/zs7353/Llama-3.1-8B-Instruct',LLAMA_TMPL,**kwargs) 
     elif model_name == 'vicuna7b':
         return HFModel('/scratch/gpfs/zs7353/vicuna-7b-v1.5',VICUNA_TMPL,**kwargs)  
-    elif model_name == 'vicuna13b':
-        return HFModel('/scratch/gpfs/zs7353/vicuna-13b-v1.5',VICUNA_TMPL,**kwargs)  
     elif model_name == 'mixtral8x7b':
         return HFModel('/scratch/gpfs/zs7353/Mixtral-8x7B-Instruct-v0.1',MISTRAL_TMPL,**kwargs) 
     elif model_name == 'o1-mini':
@@ -206,19 +203,18 @@ class HFModel(BaseModel):
         with open("configs/ds_config.json", 'r') as f:
             ds_config = json.load(f)
 
-        if "Llama" not in self.model_name:
-            self.model = deepspeed.init_inference(
-                self.model,
-                config=ds_config,
-                mp_size=4,    
-                max_tokens=8192,
-                replace_method="auto"
-            )
+        # self.model = deepspeed.init_inference(
+        #     self.model,
+        #     config=ds_config,
+        #     mp_size=4,    
+        #     max_tokens=8192,
+        #     replace_method="auto"
+        # )
 
         self.generation_kwargs = {
             'max_new_tokens':self.max_output_tokens,
             'pad_token_id':self.tokenizer.eos_token_id,
-            'do_sample':False
+            'do_sample':True
         }
         if 'Llama-3' in model_name:
             self.generation_kwargs['eos_token_id']=[self.tokenizer.eos_token_id,self.tokenizer.convert_tokens_to_ids("<|eot_id|>")]
@@ -271,7 +267,7 @@ class GPTModel(BaseModel):
         super().__init__(cache_path)
         self.model_name = model_name
         self.prompt_template = prompt_template
-        self.temperature = 0
+        self.temperature = 1.0
         self.max_output_tokens = MAX_NEW_TOKENS if max_output_tokens is None else max_output_tokens
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
 

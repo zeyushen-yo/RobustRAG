@@ -833,6 +833,7 @@ class GreedyRAG(RRAG):
         self.llm.model.greedy_rag_decoding = greedy_rag_decoding.__get__(self.llm.model, type(self.llm.model))
         self.eta = args.eta
         self.malicious_threshold = malicious_threshold
+        self.temperature = 1.0
         self.args = args
 
     def preprocess_input(self, data_item):
@@ -843,7 +844,7 @@ class GreedyRAG(RRAG):
         Constructs initial prompts for the retrieval and no-retrieval cases.
         """
         question = data_item["question"]
-        documents = data_item.get["topk_content"]
+        documents = data_item["topk_content"]
         # Build initial prompts.
         retrieval_prompt = question + " " + documents[0]
         no_retrieval_prompt = question
@@ -874,7 +875,7 @@ class GreedyRAG(RRAG):
             pad_token_id=self.llm.tokenizer.pad_token_id,
             eos_token_id=self.llm.tokenizer.eos_token_id,
             return_dict_in_generate=True,
-            temperature=0.01,
+            temperature=self.temperature,
             robust_agg="mean",
             tokenizer=self.llm.tokenizer,
             eta=self.eta,
