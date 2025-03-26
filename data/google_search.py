@@ -2,7 +2,7 @@
 
 import serpapi
 
-serpapi_api_key = "" # unfortunately, we are currently using this paid third-party API from https://serpapi.com/
+serpapi_api_key = "93c146a4a846e16ae8995c0ac1c0e743570c0fca4a530fdff72187d1361b1c52" # unfortunately, we are currently using this paid third-party API from https://serpapi.com/
 # Google itself provides APIs free for a number of queries per day https://developers.google.com/custom-search/v1/overview
 import json
 
@@ -58,7 +58,7 @@ def parse_google_research_results(results, retrieved_num=5):
 
 
 def main():
-    dataset = 'realtimeqa'
+    dataset = 'data/simple_qa'
     input_file_path = f"{dataset}.json"
     with open(input_file_path, "r") as f:
         data = json.load(f)
@@ -81,13 +81,8 @@ def main():
     print(f"total query times: {query_count}")
 
     with open(f"{dataset}_gg.json", 'w') as g:
-        g.write(json.dumps(data, indent=4))
-    with open(f"{dataset}_gg_raw.json", 'w') as g:
-        g.write(json.dumps(raw_results, indent=4))        
-
-
+        g.write(json.dumps(data, indent=4))  
 
 
 if __name__ == "__main__":
     main()
-

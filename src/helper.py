@@ -7,9 +7,10 @@ def get_log_name(args):
     if args.defense_method == 'none': defense_str = 'none'
     elif args.defense_method == 'voting': defense_str = f'{args.defense_method}'
     elif args.defense_method == 'keyword': defense_str = f'{args.defense_method}-{args.alpha}-{args.beta}' 
-    elif args.defense_method == 'decoding': defense_str = f'{args.defense_method}-{args.eta}-{args.subsample_iter}' 
+    elif args.defense_method == 'decoding': defense_str = f'{args.defense_method}-{args.eta}' 
+    elif args.defense_method == 'greedy': defense_str = f'{args.defense_method}-{args.eta}' 
     else: defense_str = ""
-    return f'{args.dataset_name}-{args.model_name}-{defense_str}-top{args.top_k}-corr{args.corruption_size}-attack{args.attack_method}'
+    return f'{args.dataset_name}-{args.model_name}-{defense_str}-rep{args.rep}-top{args.top_k}-attack{args.attack_method}'
 
 
 def load_jsonl(file_path):

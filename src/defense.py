@@ -4,9 +4,6 @@ from collections import Counter,defaultdict
 
 from transformers import StoppingCriteriaList, MaxLengthCriteria
 from nltk.corpus import stopwords
-#import nltk
-#from nltk.util import ngrams
-#from string import punctuation as PUNCTUATION
 punctuation = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
 stopword_set = set(stopwords.words('english'))
 
@@ -22,6 +19,8 @@ import spacy
 import os
 import json
 import random
+
+from src.decoding_methods import secure_decoding, greedy_rag_decoding
 
 logger = logging.getLogger('RRAG-main')
 
@@ -56,9 +55,6 @@ class RRAG:
     def query(self, data_item):
         raise NotImplementedError
 
-    def certify(self, data_item, corruption_size):
-        raise NotImplementedError
-
     def _eval_response(self,response,data_item):
         answer = data_item['answer']
         response = clean_str(response)
@@ -70,7 +66,7 @@ class RRAG:
 
 class WeightedMajorityVoting(RRAG):
 
-    def query(self, data_item, gamma = 1, corruption_size = 0):
+    def query(self, data_item, gamma = 1):
         # assume the prompt ask the LLM to output A., B., C., D., or E. No information found
         seperate_responses = self.llm.batch_query(self.llm.wrap_prompt(data_item,as_multi_choice=True,seperate=True))
         seperate_preds = []
@@ -103,44 +99,26 @@ class WeightedMajorityVoting(RRAG):
         cntr = Counter(cntr)
         cntr = cntr.most_common(2)
 
-        # Decide final prediction (and also get certificate at the same time)
-        # Note that `certificate` only cares if the `pred` can be changed by an attacker; it does not check if `pred` is a correct answer
         if len(cntr)==0:
             pred = 'E.' # No information found.
-            certificate = False 
         else:
             pred = cntr[0][0] 
-            delta = cntr[0][1] if len(cntr)==1 else cntr[0][1] - cntr[1][1]
-            # The certification needs to remove seperate_pred that equals to `pred` and is in `seperate_preds[-corruption_size:]` 
-            # This is because after the attacker injects `corruption_size` malicious passages, 
-            # the last `corruption_size` passages retrieved in benign cases will be out of topk retrieved passages. 
-            if INJECTION:
-                delta -= sum([pred==x for x in seperate_preds[-corruption_size:]])
-                certificate = delta > corruption_size # conservatively consider tie as non-robust -- can be improved later 
-            else:
-                certificate = delta > 2*corruption_size
-        return pred,certificate        
-
+        return pred
 
 
 class WeightedKeywordAgg(RRAG):
 
-    def __init__(self,llm,relative_threshold=0.3, absolute_threshold=3, abstention_threshold=1, longgen=False, certify_save_path=''):
+    def __init__(self,llm,relative_threshold=0.3, absolute_threshold=3, abstention_threshold=1, longgen=False):
         self.llm = llm
         self.abstention_threshold = 1
         self.keyword_extractor = spacy.load("en_core_web_sm") 
         self.ignore_set = {'VERB','INTJ','ADP','AUX','CCONJ','DET','PART','PRON','SCONJ','PUNCT','SPACE'}
-        self.absolute = absolute_threshold # beta in the paper
-        self.relative = relative_threshold # alpha in the paper
+        self.absolute = absolute_threshold
+        self.relative = relative_threshold
         self.longgen = longgen # if it is long-form generation or short-form (we use slightly different prompt template)
-        self.certify_save_path = certify_save_path # save all possible responses if needed
         logger.info(f'abs: {absolute_threshold}, relative: {relative_threshold}')
 
-    def query(self, data_item, gamma = 1, corruption_size=0, abstention_threshold=None): 
-        # if corruption_size > 0: we will do certification as well. 
-        # otherwise, we only do inference. and the certification flag is always False
-        certify_flg = False
-
+    def query(self, data_item, gamma = 1, abstention_threshold=None): 
         # override original threshold parameters if given
         abstention_threshold = abstention_threshold if abstention_threshold is not None else self.abstention_threshold
         if self.longgen:
@@ -161,7 +139,7 @@ class WeightedKeywordAgg(RRAG):
 
         if len(seperate_responses) < abstention_threshold:
             logger.warning('Abstain from making response...')
-            return "I don't know.", certify_flg
+            return "I don't know."
         
         def construct_phrase(token_list):
             ret = ''
@@ -181,8 +159,6 @@ class WeightedKeywordAgg(RRAG):
                         phrase_list.append(phrase)
                         phrase_list+=[x.lemma_ for x in tmp]
                         tmp = []
-                    #if token.pos_ == 'VERB':
-                    #    phrase_list.append(token.lemma_)
                 else:
                     tmp.append(token)
 
@@ -211,363 +187,23 @@ class WeightedKeywordAgg(RRAG):
         response = self.llm.query(query_prompt)
         logger.debug(f'Keyword aggregated response:\n{response}')
 
-        if corruption_size>0: # only do certification when corruption is larger than zero
-            if self.longgen or self._eval_response(response,data_item): # we don't need to do certification if it is a QA task (eval by correctness) and the clean response is incorrec
-                for idx in abstained_idx:
-                    all_extracted_phrase.insert(idx,set())                
-                certify_flg = self.certify(data_item, corruption_size, all_extracted_phrase)
-
-        return response, certify_flg
-
-
-    def certify(self, data_item, corruption_size, all_extracted_phrase):
-        # get the non-corrupted ones
-        if INJECTION:
-            all_extracted_phrase = all_extracted_phrase[:-corruption_size]
-            # how many non-abstained
-            non_abs_cnt = sum([len(x)>0 for x in all_extracted_phrase])
-
-            # slightly different from the paper, we can prove that k'_effective == corruption_size (k') generates keyword sets W^* that cover any k'_effective < corruption_size (k')
-            count_threshold = min(self.absolute,self.relative*(non_abs_cnt+corruption_size)) 
-            if count_threshold<=corruption_size: # the attacker can introduce any keyword. return false
-                return False
-        else:
-            non_abs_cnt = sum([len(x)>0 for x in all_extracted_phrase])
-            # slightly different from the paper, we can prove that k'_effective == corruption_size (k') generates keyword sets W^* that cover any k'_effective < corruption_size (k')
-            count_threshold = min(self.absolute,self.relative*(max(corruption_size,non_abs_cnt)))
-            if count_threshold<=corruption_size: # the attacker can introduce any keyword. return false
-                return False
-
-        token_counter = defaultdict(int)            
-        for phrase_set in all_extracted_phrase: # get the token counter for non-corrupted responses
-            for phrase in phrase_set:
-                token_counter[phrase]+=1
-
-        # delete the non-meaningful characters
-        for token,count in list(token_counter.items()):
-            if (token in punctuation) or (token in stopword_set) or (self.longgen and ' ' not in token):
-                del token_counter[token]
-        
-        # construct the sets with all possible keywords senarios
-        if INJECTION:
-            base_list = [token for token,count in token_counter.items() if count >= count_threshold]
-            added_list = [token for token,count in token_counter.items() if count_threshold - corruption_size <= count < count_threshold]
-        else: 
-            base_list = [token for token,count in token_counter.items() if count >= count_threshold+corruption_size]
-            added_list = [token for token,count in token_counter.items() if count_threshold - corruption_size <= count < count_threshold+corruption_size]
-        logger.debug(f'Base list: {base_list}')
-
-
-        if len(added_list)>14 or (self.longgen and len(added_list)>=10):
-            logger.warning('added list too long... skipped')
-            response_list = ["I don't know."]
-            certify_flg = False
-        else: 
-            added_list_powerset = []
-            for i in range(len(added_list) + 1):
-                for combo in combinations(added_list, i):
-                    added_list_powerset.append(list(combo))
-
-            list_powerset = [base_list + added_list for added_list in added_list_powerset]
-
-            # sort the lists inside list_powerset by the length of the items in the list
-            list_powerset = [sorted(lists, key=lambda x: (len(x),x), reverse=True) for lists in list_powerset]
-            hints_list = [', '.join([f'{token}' for token in lists]) for lists in list_powerset]
-
-            # construct the prompts
-            prompt_list = [self.llm.wrap_prompt(data_item,as_multi_choice=False,hints=hints) for hints in hints_list]
-            #logger.debug(f'Prompt list:\n{len(prompt_list)}')
-
-            response_list = []
-            # break into batches and query
-            batch_size = 20
-            #for i in tqdm(range(0, len(prompt_list), batch_size)):
-            for i in range(0, len(prompt_list), batch_size):
-                if i+batch_size > len(prompt_list):
-                    prompt_batch = prompt_list[i:]
-                else:
-                    prompt_batch = prompt_list[i:i+batch_size]
-                response_batch = self.llm.batch_query(prompt_batch)
-                for response in response_batch:
-                    if self.longgen: # we do not do correctness evaluation. we need to save all possible responses
-                        response_list.append(response)
-                    else:
-                        if not self._eval_response(response,data_item): # as long as one possible response is incorrect, we return false.
-                            return False
-            certify_flg = True
-            logger.debug('!!!!!!!!!!!!certify!!!!!!!!!!!!')
-
-        if self.longgen: # we need to dump all possible responses
-            save_all_responses(self.certify_save_path,response_list,data_item)
-
-
-        return certify_flg
-
-        
-
-
-
-#######################################################################################################################
-import copy
-from dataclasses import dataclass
-from typing import List, Optional, Tuple, Union
-
-import torch
-
-from transformers.utils import ModelOutput
-from transformers.generation.logits_process import LogitsProcessorList
-from transformers.generation.stopping_criteria import StoppingCriteriaList
-from transformers.generation.utils import _crop_past_key_values
-
-
-@torch.no_grad()
-def secure_decoding(
-        self,
-        input_ids: torch.LongTensor,
-        logits_processor: Optional[LogitsProcessorList] = None,
-        stopping_criteria: Optional[StoppingCriteriaList] = None,
-        max_length: Optional[int] = None,
-        pad_token_id: Optional[int] = None,
-        eos_token_id: Optional[Union[int, List[int]]] = None,
-        output_scores: Optional[bool] = None,
-        return_dict_in_generate: Optional[bool] = None,
-        temperature: Optional[float] = 0.01,
-        robust_agg: Optional[str] = 'mean',
-        tokenizer: Optional = None,
-        eta: Optional[float] = 1.0,
-        **model_kwargs,
-):
-
-
-    # init values
-    stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
-    pad_token_id = pad_token_id if pad_token_id is not None else self.generation_config.pad_token_id
-    eos_token_id = eos_token_id if eos_token_id is not None else self.generation_config.eos_token_id
-    if isinstance(eos_token_id, int):
-        eos_token_id = [eos_token_id]
-    eos_token_id_tensor = torch.tensor(eos_token_id).to(input_ids.device) if eos_token_id is not None else None
-
-    # # init attention / hidden states / scores tuples
-    scores = () if (return_dict_in_generate and output_scores) else None
-
-    max_len = stopping_criteria[0].max_length
-
-    generated_tokens = []
-    ii = 0 
-    while True:
-        ii+=1  
-        with torch.no_grad():
-            outputs = self(input_ids, **model_kwargs)
-
-        new_logits_full = outputs.logits[:, -1, :]  # last token prediction
-        no_retrieval_token = new_logits_full[-1,:].argmax()
-        new_logits = new_logits_full[:-1,:] # remove no-retrieval prompt
-
-        # get the softmax of the next_token_logits
-        next_token_confidence = torch.nn.functional.softmax(new_logits/temperature, dim=-1)
-
-        if robust_agg == 'mean':
-            next_token_agg = torch.sum(next_token_confidence, dim=0)
-        elif robust_agg == 'median':
-            next_token_agg = torch.median(next_token_confidence, dim=0).values
-        else:
-            raise NotImplementedError
-            
-        if ii == 1:
-            ## Here, we should reduce the probability of the "I" token
-            ## We can do this by setting the probability of the "I" token to 0
-            I_token = tokenizer("I", return_tensors="pt")["input_ids"][0][1].item()
-            n_token = tokenizer("/n", return_tensors="pt")["input_ids"][0][1].item()
-            Please_token = tokenizer("Please", return_tensors="pt")["input_ids"][0][1].item()
-            next_token_agg[I_token] = 0  # set the probability of the "I" token to 0
-            next_token_agg[n_token] = 0 # set the probability of the "/n" token to 0
-            next_token_agg[Please_token] = 0 # set the probability of the "Please" token to 0
-
-        top2_tokens = torch.topk(next_token_agg, 2)
-        if top2_tokens.values[0] - top2_tokens.values[1]>eta:
-            selected_tokens = top2_tokens.indices[0] # top 1 token
-        else: # no retrieval token
-            selected_tokens = no_retrieval_token
-
-        input_ids = torch.cat((input_ids, selected_tokens.repeat(input_ids.shape[0], 1)), dim=-1)
-    
-        new_cur_len = input_ids.shape[-1]
-
-        new_cache_size = new_cur_len - 1
-        outputs.past_key_values = _crop_past_key_values(self, outputs.past_key_values, new_cache_size)
-
-        model_kwargs["past_key_values"] = outputs.past_key_values
-        
-        model_kwargs["attention_mask"] = torch.cat([model_kwargs["attention_mask"], torch.ones_like(model_kwargs["attention_mask"][:, :1])], dim=-1)
-
-        generated_tokens.append(selected_tokens)
-
-        # stop if we exceed the maximum length
-        if (selected_tokens == eos_token_id_tensor.item()).any():
-            break
-        
-        if all(stopping_criteria(input_ids, scores)):
-            break
-
-    return generated_tokens
-
-
-@torch.no_grad()
-def secure_decoding_certify(
-        self,
-        initial_input_ids: torch.LongTensor,
-        logits_processor: Optional[LogitsProcessorList] = None,
-        stopping_criteria: Optional[StoppingCriteriaList] = None,
-        max_length: Optional[int] = None,
-        pad_token_id: Optional[int] = None,
-        eos_token_id: Optional[Union[int, List[int]]] = None,
-        return_dict_in_generate: Optional[bool] = None,
-        ab_record = None,
-        corruption_size: Optional[int] = None,
-        temperature: Optional[float] = 0.01,
-        robust_agg: Optional[str] = 'mean',
-        tokenizer: Optional = None,
-        data_item: Optional = None,
-        eta: Optional[float] = 1.0,
-        random_sample_once: Optional = False,
-        no_sampling: Optional = True,
-        **initial_model_kwargs,
-):
-
-    # init values
-    stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
-    pad_token_id = pad_token_id if pad_token_id is not None else self.generation_config.pad_token_id
-    eos_token_id = eos_token_id if eos_token_id is not None else self.generation_config.eos_token_id
-    if isinstance(eos_token_id, int):
-        eos_token_id = [eos_token_id]
-    eos_token_id_tensor = torch.tensor(eos_token_id).to(initial_input_ids.device) if eos_token_id is not None else None
-
-    stopping_list = [stopping_criteria, eos_token_id_tensor.item()]
-
-    stack = [(0, torch.tensor([], dtype=torch.long, device=initial_input_ids.device))]  # Added None for the initial cache
-
-    all_outputs = []
-    certify = True
-    past_key_values = None
-
-    while stack:
-        #print(stack)
-        depth, additional_tokens = stack.pop()
-
-        input_ids = torch.cat([initial_input_ids, 
-                            additional_tokens.repeat((initial_input_ids.shape[0], 1))], 
-                            dim=1) if additional_tokens.numel() > 0 else initial_input_ids
-
-        attention_mask = torch.cat([initial_model_kwargs["attention_mask"], 
-                                    torch.ones_like(initial_model_kwargs["attention_mask"][:, 
-                                    :additional_tokens.shape[0]])], dim=-1)
-
-        if all(stopping_list[0](input_ids, None)) or (input_ids[:, -1] == stopping_list[1]).any():
-            all_outputs.append(additional_tokens)
-            continue
-
-        # Update model inputs with past key values if available
-        if past_key_values is not None:
-            past_key_values = _crop_past_key_values(self, past_key_values, input_ids.shape[-1] - 1)
-            model_kwargs = {'attention_mask': attention_mask, 'past_key_values': past_key_values}
-        else:
-            model_kwargs = {'attention_mask': attention_mask}
-        with torch.no_grad():
-            outputs = self(input_ids, **model_kwargs)
-
-        new_logits_full = outputs.logits[:, -1, :]
-
-        if depth == 0:
-            ## Here, we should reduce the probability of the "I" token
-            ## We can do this by setting the probability of the "I" token to 0
-            I_token = tokenizer("I", return_tensors="pt")["input_ids"][0][1].item()
-            n_token = tokenizer("/n", return_tensors="pt")["input_ids"][0][1].item()
-            Please_token = tokenizer("Please", return_tensors="pt")["input_ids"][0][1].item()
-            new_logits_full[:, I_token] = 0  # set the probability of the "I" token to 0
-            new_logits_full[:, n_token] = 0 # set the probability of the "/n" token to 0
-            new_logits_full[:, Please_token] = 0 # set the probability of the "Please" token to 0
-
-        new_logits = new_logits_full[:-1, :]
-        new_logits = torch.nn.functional.softmax(new_logits / temperature, dim=-1)
-        no_retrieval_token = new_logits_full[-1].argmax()
-        # Update the cache with new key values
-        past_key_values = outputs.past_key_values
-        
-        if INJECTION:
-            non_abs_cnt = ab_record[:-corruption_size].sum().item()
-            new_logits = new_logits[:non_abs_cnt]
-        else:
-            new_logits = new_logits
-        confidence_sum = new_logits.sum(dim=0)
-        top2_tokens = torch.topk(confidence_sum, 2)
-        top1_top2_gap = (top2_tokens.values[0] - top2_tokens.values[1]).item()
-        top1_index = top2_tokens.indices[0]
-
-
-        if INJECTION:
-            thres1 = eta + corruption_size
-            thres2 = abs(eta - corruption_size)
-            thres3 = eta - corruption_size
-        else:
-
-            thres1 = eta + 2*corruption_size
-            thres2 = abs(eta - 2*corruption_size)
-            thres3 = eta - 2*corruption_size
-
-        selected_tokens_list = []
-
-        if no_sampling: # generate all possible responses
-            pruning_prob = 0.0
-        elif random_sample_once: # generate one possible reponse
-            pruning_prob = 1.1
-        else: # generate a random subset of possible responses
-            pruning_prob = 0.0 if depth<=12 else 0.9 # some random numbers...
-
-        if top1_top2_gap > thres1:
-            selected_tokens_list.append(top1_index)
-        elif  thres1 >= top1_top2_gap > thres2:
-            zero_shot_token = new_logits_full[-1,:].argmax() 
-            selected_tokens_list.append(no_retrieval_token)
-            if no_retrieval_token != top1_index: 
-                logger.debug(f"Zero-shot: {no_retrieval_token}, top1: {top1_index}, branch: {top1_top2_gap}")
-                selected_tokens_list.append(top1_index)
-            if random.random()<pruning_prob:
-                logger.debug('prunning!!')
-                selected_tokens_list = [random.choice(selected_tokens_list)]
-        elif top1_top2_gap <= thres3:
-            no_retrieval_token = new_logits_full[-1,:].argmax() 
-            selected_tokens_list.append(no_retrieval_token)
-        else:
-            return [],False
-
-        for selected_token in selected_tokens_list:
-            new_additional_tokens = torch.cat([additional_tokens, selected_token.unsqueeze(0)], dim=0) if additional_tokens.numel() > 0 else selected_token.unsqueeze(0)
-            # Store updated key-value pairs for the next iteration
-            stack.append((depth + 1, new_additional_tokens))
-
-    #logger.info(f'size of outputs: {len(all_outputs)}')
-    return all_outputs, True
+        return response
 
 
 class WeightedDecodingAgg(RRAG):
-    def __init__(self,llm, args, abstention_prob=None, robust_agg = "mean",certify_save_path='',eval_certify=None):
+    def __init__(self,llm, args, abstention_prob=None):
         self.llm = llm
-        self.llm.model.secure_decoding_certify = secure_decoding_certify.__get__(self.llm.model, type(self.llm.model))
         self.llm.model.secure_decoding = secure_decoding.__get__(self.llm.model, type(self.llm.model))
-        self.temperature = 1.0#args.temperature
-        self.robust_agg = robust_agg
-        abstention_prob_list = {'mistralai/Mistral-7B-Instruct-v0.2': 0.99, 
-                                'meta-llama/Llama-2-7b-chat-hf': 0.99, 
-                                'mistralai/Mixtral-8x7B-Instruct-v0.1': 0.999}
+        self.temperature = 1.0 #args.temperature
+        abstention_prob_list = {'/scratch/gpfs/zs7353/Llama-3.2-3B-Instruct': 0.99, 
+                                '/scratch/gpfs/zs7353/Mistral-7B-Instruct-v0.2': 0.99, 
+                                '/scratch/gpfs/zs7353/DeepSeek-R1-Distill-Qwen-7B': 0.99}
         if abstention_prob is None:
             self.abstention_prob = abstention_prob_list.get(llm.model_name, 0.99)
             logger.debug(f"Using default abstention probability: {self.abstention_prob}")
 
         self.args = args
         self.eta = args.eta
-        self.subsample_iter = args.subsample_iter
-        self.certify_save_path = certify_save_path  # we need to save all possible reponses for long-form generation certifictaion 
-        self.eval_certify = eval_certify if eval_certify is not None else self.eta==0 # when eta == 0, we do not use no-retrieval token -- we are usually doing QA task
 
     def preprocess_input(self,data_item):
         prompt_list = self.llm.wrap_prompt(data_item,as_multi_choice=False,seperate=True)
@@ -579,7 +215,6 @@ class WeightedDecodingAgg(RRAG):
 
         # batched version 
         input_dict_draft = self.llm.tokenizer(prompt_list_draft, return_tensors="pt", padding=True).to("cuda")
-        # there is some issues when certifying the model with the batched version, will fix this later
         input_ids_draft = input_dict_draft.input_ids.to("cuda")
         attention_mask_draft = input_dict_draft.attention_mask.to("cuda")
 
@@ -611,253 +246,16 @@ class WeightedDecodingAgg(RRAG):
         attention_mask = attention_mask[ab_record]
         return input_ids,attention_mask,ab_record
 
-    def query(self, data_item, gamma=1, corruption_size=1):
+    def query(self, data_item, gamma=1):
 
         input_ids,attention_mask,ab_record = self.preprocess_input(data_item)
 
         if input_ids.shape[0] == 1: # only the no-retrieval prediction
             return "I don't know.", False
         
-        if corruption_size>0: 
-            #for certification
-            input_ids_copy = input_ids.clone()
-            attention_mask_copy = attention_mask.clone()
-
         # Initialize past_key_values for caching
         past_key_values = None
         generated_outputs = []
-
-        stop_list = ["\n#", "\n##","\n###","\n####","\n#####"] + ["\n\n"] ################ seems to work fine
-        stop_token_ids = [self.llm.tokenizer(x, return_tensors='pt', add_special_tokens=False)['input_ids'] for x in stop_list]
-        stop_token_ids = [LongTensor(x).to("cuda") for x in stop_token_ids]
-        #print(stop_token_ids)
-        stopping_criteria = StoppingCriteriaList([
-            MaxLengthCriteria(max_length=len(input_ids[0]) + self.llm.max_output_tokens),
-            StopOnTokens(stop_token_ids=stop_token_ids)
-            ])
-        
-        generated_outputs = self.llm.model.secure_decoding(input_ids,
-                            attention_mask=attention_mask,
-                            stopping_criteria=stopping_criteria,
-                            use_cache=False,
-                            pad_token_id=self.llm.tokenizer.pad_token_id,
-                            eos_token_id=self.llm.tokenizer.eos_token_id,
-                            return_dict_in_generate=True,
-                            temperature=self.temperature,
-                            robust_agg=self.robust_agg,
-                            tokenizer=self.llm.tokenizer,
-                            eta=self.eta
-                            )
-
-        generated_output_text = self.llm.tokenizer.decode(generated_outputs, skip_special_tokens=True)
-        certify = False 
-
-        if corruption_size>0:
-            if self.eval_certify and (not self._eval_response(generated_output_text,data_item)):
-                pass
-            else:
-                certify = self.certify(data_item, input_ids_copy, attention_mask_copy, 
-                                stopping_criteria, ab_record, corruption_size)
-
-            logger.debug(f'Robust Gen Response: \n {generated_output_text} \n Certification: {certify}')
-            #print(certify)
-
-        return generated_output_text, certify
-
-    def certify(self, data_item, input_ids, attention_mask, stopping_criteria, ab_record, corruption_size, no_sampling=True):
-
-        iterations = self.subsample_iter
-        random_sample_once  = iterations > 1
-        if random_sample_once: no_sampling = False
-        generated_outputs = []
-        certify = True
-        #print(no_sampling)
-        for j in range(iterations):
-            outputs_local, certify_local = self.llm.model.secure_decoding_certify(input_ids,
-                                    attention_mask=attention_mask,
-                                    stopping_criteria=stopping_criteria,
-                                    use_cache=False,
-                                    pad_token_id=self.llm.tokenizer.pad_token_id,
-                                    eos_token_id=self.llm.tokenizer.eos_token_id,
-                                    return_dict_in_generate=True,
-                                    ab_record = ab_record,
-                                    data_item = data_item, 
-                                    corruption_size = corruption_size,
-                                    eta = self.eta,
-                                    tokenizer = self.llm.tokenizer,
-                                    temperature = self.temperature,
-                                    random_sample_once = random_sample_once,
-                                    no_sampling = no_sampling
-                                    )
-            generated_outputs += outputs_local
-            certify &= certify_local
-
-        #print(certify)
-        if certify:
-            response_list = [self.llm.tokenizer.decode(response, skip_special_tokens=True) for response in generated_outputs]
-            if len(self.certify_save_path)>0:
-                save_all_responses(self.certify_save_path,response_list,data_item)
-
-            if self.eval_certify:
-                certify = all([self._eval_response(response,data_item) for response in response_list])
-        return certify
-
-
-
-@torch.no_grad()
-def greedy_rag_decoding(
-        self,
-        question: str,
-        documents: List[str],
-        logits_processor: Optional[LogitsProcessorList] = None,
-        stopping_criteria: Optional[StoppingCriteriaList] = None,
-        max_new_tokens: Optional[int] = None,
-        pad_token_id: Optional[int] = None,
-        eos_token_id: Optional[Union[int, List[int]]] = None,
-        output_scores: Optional[bool] = None,
-        return_dict_in_generate: Optional[bool] = None,
-        temperature: Optional[float] = 0.01,
-        robust_agg: Optional[str] = 'mean',
-        tokenizer: Optional = None,
-        eta: Optional[float] = 1.0,
-        malicious_threshold: Optional[float] = 0.1,
-        **model_kwargs,
-):
-
-    stopping_criteria = stopping_criteria if stopping_criteria is not None else StoppingCriteriaList()
-    pad_token_id = pad_token_id if pad_token_id is not None else self.generation_config.pad_token_id
-    if isinstance(eos_token_id, int):
-        eos_token_id = [eos_token_id]
-    eos_token_id_tensor = torch.tensor(eos_token_id).to(tokenizer.device) if eos_token_id is not None else None
-
-    generated_tokens = []
-    r_star = ""  # current generated response.
-    current_doc_count = 1  # start with the most trustworthy document only.
-    flagged_docs = []    # keep track of suspicious documents
-
-    for step in range(max_new_tokens):
-        # Build prompts for current decoding step.
-        # For each retrieved document, we concatenate the question, the document, and the generated response so far.
-        retrieval_prompts = [question + " " + doc + " " + r_star for doc in documents[:current_doc_count]]
-        # The no-retrieval prompt is just the question plus what we’ve generated so far.
-        no_retrieval_prompt = question + " " + r_star
-        batch_prompts = retrieval_prompts + [no_retrieval_prompt]
-        tokenized = tokenizer(batch_prompts, return_tensors="pt", padding=True)
-        tokenized = {k: v.to(next(self.parameters()).device) for k, v in tokenized.items()}
-        model_kwargs["attention_mask"] = tokenized["attention_mask"]
-
-        outputs = self(input_ids=tokenized["input_ids"], **model_kwargs)
-        # Obtain logits for the last token from each prompt.
-        logits = outputs.logits[:, -1, :]  # shape: (batch, vocab_size)
-        no_retrieval_logits = logits[-1]    # last row corresponds to no-retrieval
-
-        # Compute softmaxed probabilities (with temperature scaling) for the retrieval prompts.
-        retrieved_logits = logits[:-1]  # exclude the no-retrieval prompt.
-        probs = torch.nn.functional.softmax(retrieved_logits / temperature, dim=-1)
-        if robust_agg == 'mean':
-            aggregated = torch.mean(probs, dim=0)
-        elif robust_agg == 'sum':
-            aggregated = torch.sum(probs, dim=0)
-        elif robust_agg == 'median':
-            aggregated = torch.median(probs, dim=0).values
-        else:
-            raise NotImplementedError("Aggregation method not implemented")
-
-        # Get top-2 tokens from the aggregated probability distribution.
-        top2 = torch.topk(aggregated, 2)
-        if top2.values[0] - top2.values[1] > eta:
-            # Confident prediction: select the top token.
-            selected_token = top2.indices[0].unsqueeze(0)
-        else:
-            # Not decisive: if we have more documents, try to incorporate the next one.
-            if current_doc_count < len(documents):
-                old_aggregated = aggregated.clone()
-                current_doc_count += 1
-                # Rebuild the retrieval prompts with one additional document.
-                retrieval_prompts_new = [question + " " + doc + " " + r_star for doc in documents[:current_doc_count]]
-                batch_prompts_new = retrieval_prompts_new + [no_retrieval_prompt]
-                tokenized_new = tokenizer(batch_prompts_new, return_tensors="pt", padding=True)
-                tokenized_new = {k: v.to(next(self.parameters()).device) for k, v in tokenized_new.items()}
-                model_kwargs["attention_mask"] = tokenized_new["attention_mask"]
-                outputs_new = self(input_ids=tokenized_new["input_ids"], **model_kwargs)
-                logits_new = outputs_new.logits[:, -1, :]
-                retrieved_logits_new = logits_new[:-1]
-                new_probs = torch.nn.functional.softmax(retrieved_logits_new / temperature, dim=-1)
-                if robust_agg == 'mean':
-                    new_aggregated = torch.mean(new_probs, dim=0)
-                elif robust_agg == 'sum':
-                    new_aggregated = torch.sum(new_probs, dim=0)
-                elif robust_agg == 'median':
-                    new_aggregated = torch.median(new_probs, dim=0).values
-                # Check how much the new document changes the aggregated distribution.
-                diff = torch.norm(new_aggregated - old_aggregated, p=1)
-                if diff > malicious_threshold:
-                    # Flag the newly added document (its index is current_doc_count-1).
-                    flagged_docs.append(current_doc_count - 1)
-                aggregated = new_aggregated
-                top2 = torch.topk(aggregated, 2)
-                if top2.values[0] - top2.values[1] > eta:
-                    selected_token = top2.indices[0].unsqueeze(0)
-                else:
-                    # Even after adding a document the tie persists, so we fall back.
-                    selected_token = no_retrieval_logits.argmax().unsqueeze(0)
-            else:
-                # No more documents to add; fall back to the no-retrieval prompt.
-                selected_token = no_retrieval_logits.argmax().unsqueeze(0)
-
-        # Append the chosen token to our generated response.
-        generated_tokens.append(selected_token.item())
-        token_str = tokenizer.decode(selected_token)
-        r_star += token_str
-
-        new_cur_len = tokenized["input_ids"].shape[-1] + 1
-        if "past_key_values" in outputs:
-            outputs.past_key_values = _crop_past_key_values(self, outputs.past_key_values, new_cur_len - 1)
-            model_kwargs["past_key_values"] = outputs.past_key_values
-            model_kwargs["attention_mask"] = torch.cat(
-                [model_kwargs["attention_mask"], torch.ones_like(model_kwargs["attention_mask"][:, :1])],
-                dim=-1
-            )
-
-        if eos_token_id_tensor is not None and (selected_token == eos_token_id_tensor.item()).any():
-            break
-        if all(stopping_criteria(tokenized["input_ids"], None)):
-            break
-
-    return generated_tokens, flagged_docs
-
-
-class GreedyRAG(RRAG):
-    def __init__(self, llm, args, malicious_threshold=0.1):
-        self.llm = llm
-        self.llm.model.greedy_rag_decoding = greedy_rag_decoding.__get__(self.llm.model, type(self.llm.model))
-        self.eta = args.eta
-        self.malicious_threshold = malicious_threshold
-        self.temperature = 1.0
-        self.args = args
-
-    def preprocess_input(self, data_item):
-        """
-        Expects data_item to be a dict with keys:
-          - "question": the query text.
-          - "documents": a list of document strings (sorted by trustworthiness).
-        Constructs initial prompts for the retrieval and no-retrieval cases.
-        """
-        question = data_item["question"]
-        documents = data_item["topk_content"]
-        # Build initial prompts.
-        retrieval_prompt = question + " " + documents[0]
-        no_retrieval_prompt = question
-        tokenized_retrieval = self.llm.tokenizer(retrieval_prompt, return_tensors="pt", padding=True)
-        tokenized_no_retrieval = self.llm.tokenizer(no_retrieval_prompt, return_tensors="pt", padding=True)
-        # We stack the retrieval prompt (using only the top doc) and the no-retrieval prompt.
-        input_ids = torch.cat([tokenized_retrieval.input_ids, tokenized_no_retrieval.input_ids], dim=0).to("cuda")
-        attention_mask = torch.cat([tokenized_retrieval.attention_mask, tokenized_no_retrieval.attention_mask], dim=0).to("cuda")
-        return question, documents, input_ids, attention_mask
-
-    def query(self, data_item):
-        question, documents, input_ids, attention_mask = self.preprocess_input(data_item)
-        max_new_tokens = self.args.max_output_tokens
 
         stop_list = ["\n#", "\n##","\n###","\n####","\n#####"] + ["\n\n"] ################ seems to work fine
         stop_token_ids = [self.llm.tokenizer(x, return_tensors='pt', add_special_tokens=False)['input_ids'] for x in stop_list]
@@ -866,26 +264,61 @@ class GreedyRAG(RRAG):
             MaxLengthCriteria(max_length=len(input_ids[0]) + self.llm.max_output_tokens),
             StopOnTokens(stop_token_ids=stop_token_ids)
         ])
+        
+        generated_outputs = self.llm.model.secure_decoding(input_ids,
+                                                           attention_mask=attention_mask,
+                                                           stopping_criteria=stopping_criteria,
+                                                           use_cache=False,
+                                                           pad_token_id=self.llm.tokenizer.pad_token_id,
+                                                           eos_token_id=self.llm.tokenizer.eos_token_id,
+                                                           return_dict_in_generate=True,
+                                                           temperature=self.temperature,
+                                                           tokenizer=self.llm.tokenizer,
+                                                           eta=self.eta,
+                                                           gamma=gamma)
 
-        generated_tokens, flagged_docs = self.llm.model.greedy_rag_decoding(
-            question=question,
-            documents=documents,
-            attention_mask=attention_mask,
-            stopping_criteria=stopping_criteria,
-            pad_token_id=self.llm.tokenizer.pad_token_id,
-            eos_token_id=self.llm.tokenizer.eos_token_id,
-            return_dict_in_generate=True,
-            temperature=self.temperature,
-            robust_agg="mean",
+        generated_output_text = self.llm.tokenizer.decode(generated_outputs, skip_special_tokens=True)
+        return generated_output_text
+
+
+class GreedyRAG(RRAG):
+    def __init__(self, llm, tokenizer, uncertain_thres=0.1, malicious_thres=0.2):
+        self.llm = llm
+        self.uncertain_thres = uncertain_thres
+        self.malicious_thres = malicious_thres
+
+    def preprocess_input(self, question, docs):
+        query_enc = self.llm.tokenizer(question, return_tensors="pt")
+        query_ids = query_enc["input_ids"].to("cuda")
+        query_mask = query_enc["attention_mask"].to("cuda")
+        doc_ids_list = []
+        for doc in docs:
+            doc_enc = self.llm.tokenizer(doc, return_tensors="pt")
+            doc_ids = doc_enc["input_ids"].to("cuda")
+            doc_ids_list.append(doc_ids)
+        return query_ids, query_mask, doc_ids_list
+
+    def query(self, data_item):
+        question = data_item["question"]
+        docs = data_item["topk_content"]
+        query_ids, query_mask, doc_ids_list = self.preprocess_input(question, docs)
+
+        stop_list = ["\n#", "\n##","\n###","\n####","\n#####"] + ["\n\n"] ################ seems to work fine
+        stop_token_ids = [self.llm.tokenizer(x, return_tensors='pt', add_special_tokens=False)['input_ids'] for x in stop_list]
+        stop_token_ids = [LongTensor(x).to("cuda") for x in stop_token_ids]
+        stopping_criteria = StoppingCriteriaList([
+            MaxLengthCriteria(max_length=self.llm.max_output_tokens),
+            StopOnTokens(stop_token_ids=stop_token_ids)
+        ])
+
+        output_text, flagged_docs = greedy_rag_decoding(
+            model=self.llm.model,
             tokenizer=self.llm.tokenizer,
-            eta=self.eta,
-            malicious_threshold=self.malicious_threshold,
-            max_new_tokens=max_new_tokens,
-            use_cache=False,
+            stopping_criteria=stopping_criteria,
+            query_ids=query_ids,
+            query_attention_mask=query_mask,
+            doc_ids_list=doc_ids_list,
+            uncertain_thres=self.uncertain_thres,
+            malicious_thres=self.malicious_thres
         )
-        generated_output_text = self.llm.tokenizer.decode(generated_tokens, skip_special_tokens=True)
-        return generated_output_text, flagged_docs
-
-    # dummy, not consider certification for now
-    def certify(self, data_item, corruption_size):
-        return False
+        return output_text, flagged_docs
