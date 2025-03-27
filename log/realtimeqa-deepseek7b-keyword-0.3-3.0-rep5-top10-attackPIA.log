@@ -1,0 +1,1032 @@
+Namespace(local_rank=0, model_name='deepseek7b', dataset_name='realtimeqa', rep=5, top_k=10, attack_method='PIA', defense_method='keyword', alpha=0.3, beta=3.0, eta=0.0, temperature=1.0, debug=False, save_response=False, use_cache=False, no_vanilla=False)
+Loading data from data/realtimeqa.json......
+Namespace(local_rank=1, model_name='deepseek7b', dataset_name='realtimeqa', rep=5, top_k=10, attack_method='PIA', defense_method='keyword', alpha=0.3, beta=3.0, eta=0.0, temperature=1.0, debug=False, save_response=False, use_cache=False, no_vanilla=False)
+Namespace(local_rank=2, model_name='deepseek7b', dataset_name='realtimeqa', rep=5, top_k=10, attack_method='PIA', defense_method='keyword', alpha=0.3, beta=3.0, eta=0.0, temperature=1.0, debug=False, save_response=False, use_cache=False, no_vanilla=False)
+Namespace(local_rank=3, model_name='deepseek7b', dataset_name='realtimeqa', rep=5, top_k=10, attack_method='PIA', defense_method='keyword', alpha=0.3, beta=3.0, eta=0.0, temperature=1.0, debug=False, save_response=False, use_cache=False, no_vanilla=False)
+Loading data from data/realtimeqa.json......
+Loading data from data/realtimeqa.json......
+Loading data from data/realtimeqa.json......
+Total samples: 100
+Total samples: 100
+Total samples: 100
+Total samples: 100
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+undefended_corr_cnt: 191
+defended_corr_cnt: 57
+######################## ASR ########################
+undefended_corr_cnt: 191
+undefended_asr_cnt: 40
+defended_asr_cnt: 13
+defended_corr_cnt: 57
+undefended_corr_cnt: 191
+######################## ASR ########################
+undefended_asr_cnt: 40
+defended_asr_cnt: 13
+undefended_corr_cnt: 191
+defended_corr_cnt: 57
+######################## ASR ########################
+undefended_asr_cnt: 40
+defended_corr_cnt: 57
+defended_asr_cnt: 13
+######################## ASR ########################
+undefended_asr_cnt: 40
+defended_asr_cnt: 13
+undefended_corr_cnt: 173
+defended_corr_cnt: 76
+######################## ASR ########################
+undefended_asr_cnt: 46
+defended_asr_cnt: 15
+undefended_corr_cnt: 173
+undefended_corr_cnt: 173
+undefended_corr_cnt: 173
+defended_corr_cnt: 76
+######################## ASR ########################
+undefended_asr_cnt: 46
+defended_corr_cnt: 76
+defended_asr_cnt: 15
+defended_corr_cnt: 76
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 46
+undefended_asr_cnt: 46
+defended_asr_cnt: 15
+defended_asr_cnt: 15
+undefended_corr_cnt: 126
+undefended_corr_cnt: 126
+undefended_corr_cnt: 126
+defended_corr_cnt: 94
+defended_corr_cnt: 94
+undefended_corr_cnt: 126
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 59
+defended_corr_cnt: 94
+undefended_asr_cnt: 59
+defended_asr_cnt: 15
+defended_asr_cnt: 15
+######################## ASR ########################
+undefended_asr_cnt: 59
+defended_asr_cnt: 15
+defended_corr_cnt: 94
+######################## ASR ########################
+undefended_asr_cnt: 59
+defended_asr_cnt: 15
+undefended_corr_cnt: 113
+undefended_corr_cnt: 113
+undefended_corr_cnt: 113
+undefended_corr_cnt: 113
+defended_corr_cnt: 93
+######################## ASR ########################
+undefended_asr_cnt: 66
+defended_corr_cnt: 93
+defended_corr_cnt: 93
+defended_asr_cnt: 9
+defended_corr_cnt: 93
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 66
+undefended_asr_cnt: 66
+undefended_asr_cnt: 66
+defended_asr_cnt: 9
+defended_asr_cnt: 9
+defended_asr_cnt: 9
+undefended_corr_cnt: 102
+undefended_corr_cnt: 102
+undefended_corr_cnt: 102
+undefended_corr_cnt: 102
+defended_corr_cnt: 94
+defended_corr_cnt: 94
+defended_corr_cnt: 94
+defended_corr_cnt: 94
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 61
+undefended_asr_cnt: 61
+undefended_asr_cnt: 61
+undefended_asr_cnt: 61
+defended_asr_cnt: 13
+defended_asr_cnt: 13
+defended_asr_cnt: 13
+defended_asr_cnt: 13
+undefended_corr_cnt: 107
+defended_corr_cnt: 94
+######################## ASR ########################
+undefended_asr_cnt: 58
+defended_asr_cnt: 11
+undefended_corr_cnt: 107
+undefended_corr_cnt: 107
+undefended_corr_cnt: 107
+defended_corr_cnt: 94
+defended_corr_cnt: 94
+defended_corr_cnt: 94
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 58
+undefended_asr_cnt: 58
+undefended_asr_cnt: 58
+defended_asr_cnt: 11
+defended_asr_cnt: 11
+defended_asr_cnt: 11
+undefended_corr_cnt: 98
+defended_corr_cnt: 100
+######################## ASR ########################
+undefended_asr_cnt: 66
+defended_asr_cnt: 5
+undefended_corr_cnt: 98
+undefended_corr_cnt: 98
+undefended_corr_cnt: 98
+defended_corr_cnt: 100
+######################## ASR ########################
+undefended_asr_cnt: 66
+defended_corr_cnt: 100
+defended_corr_cnt: 100
+defended_asr_cnt: 5
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 66
+undefended_asr_cnt: 66
+defended_asr_cnt: 5
+defended_asr_cnt: 5
+undefended_corr_cnt: 93
+undefended_corr_cnt: 93
+undefended_corr_cnt: 93
+defended_corr_cnt: 96
+defended_corr_cnt: 96
+undefended_corr_cnt: 93
+######################## ASR ########################
+######################## ASR ########################
+defended_corr_cnt: 96
+undefended_asr_cnt: 64
+undefended_asr_cnt: 64
+defended_asr_cnt: 8
+######################## ASR ########################
+defended_asr_cnt: 8
+undefended_asr_cnt: 64
+defended_asr_cnt: 8
+defended_corr_cnt: 96
+######################## ASR ########################
+undefended_asr_cnt: 64
+defended_asr_cnt: 8
+undefended_corr_cnt: 83
+undefended_corr_cnt: 83
+undefended_corr_cnt: 83
+undefended_corr_cnt: 83
+defended_corr_cnt: 103
+######################## ASR ########################
+undefended_asr_cnt: 70
+defended_corr_cnt: 103
+defended_corr_cnt: 103
+defended_asr_cnt: 9
+defended_corr_cnt: 103
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 70
+undefended_asr_cnt: 70
+undefended_asr_cnt: 70
+defended_asr_cnt: 9
+defended_asr_cnt: 9
+defended_asr_cnt: 9
+undefended_corr_cnt: 53
+undefended_corr_cnt: 53
+undefended_corr_cnt: 53
+undefended_corr_cnt: 53
+defended_corr_cnt: 100
+######################## ASR ########################
+undefended_asr_cnt: 77
+defended_asr_cnt: 9
+defended_corr_cnt: 100
+defended_corr_cnt: 100
+defended_corr_cnt: 100
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 77
+undefended_asr_cnt: 77
+undefended_asr_cnt: 77
+defended_asr_cnt: 9
+defended_asr_cnt: 9
+defended_asr_cnt: 9
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+undefended_corr_cnt: 186
+undefended_corr_cnt: 186
+defended_corr_cnt: 95
+defended_corr_cnt: 95
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 35
+undefended_asr_cnt: 35
+undefended_corr_cnt: 186
+defended_asr_cnt: 16
+defended_asr_cnt: 16
+undefended_corr_cnt: 186
+defended_corr_cnt: 95
+######################## ASR ########################
+undefended_asr_cnt: 35
+defended_asr_cnt: 16
+defended_corr_cnt: 95
+######################## ASR ########################
+undefended_asr_cnt: 35
+defended_asr_cnt: 16
+undefended_corr_cnt: 169
+defended_corr_cnt: 101
+######################## ASR ########################
+undefended_asr_cnt: 48
+defended_asr_cnt: 14
+undefended_corr_cnt: 169
+undefended_corr_cnt: 169
+undefended_corr_cnt: 169
+defended_corr_cnt: 101
+######################## ASR ########################
+undefended_asr_cnt: 48
+defended_asr_cnt: 14
+defended_corr_cnt: 101
+defended_corr_cnt: 101
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 48
+undefended_asr_cnt: 48
+defended_asr_cnt: 14
+defended_asr_cnt: 14
+undefended_corr_cnt: 128
+undefended_corr_cnt: 128
+defended_corr_cnt: 111
+defended_corr_cnt: 111
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 59
+undefended_asr_cnt: 59
+defended_asr_cnt: 14
+defended_asr_cnt: 14
+undefended_corr_cnt: 128
+undefended_corr_cnt: 128
+defended_corr_cnt: 111
+######################## ASR ########################
+undefended_asr_cnt: 59
+defended_corr_cnt: 111
+defended_asr_cnt: 14
+######################## ASR ########################
+undefended_asr_cnt: 59
+defended_asr_cnt: 14
+undefended_corr_cnt: 122
+undefended_corr_cnt: 122
+defended_corr_cnt: 102
+defended_corr_cnt: 102
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 61
+undefended_asr_cnt: 61
+undefended_corr_cnt: 122
+defended_asr_cnt: 12
+defended_asr_cnt: 12
+undefended_corr_cnt: 122
+defended_corr_cnt: 102
+######################## ASR ########################
+undefended_asr_cnt: 61
+defended_asr_cnt: 12
+defended_corr_cnt: 102
+######################## ASR ########################
+undefended_asr_cnt: 61
+defended_asr_cnt: 12
+undefended_corr_cnt: 109
+defended_corr_cnt: 120
+######################## ASR ########################
+undefended_asr_cnt: 66
+defended_asr_cnt: 12
+undefended_corr_cnt: 109
+undefended_corr_cnt: 109
+undefended_corr_cnt: 109
+defended_corr_cnt: 120
+######################## ASR ########################
+undefended_asr_cnt: 66
+defended_asr_cnt: 12
+defended_corr_cnt: 120
+defended_corr_cnt: 120
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 66
+undefended_asr_cnt: 66
+defended_asr_cnt: 12
+defended_asr_cnt: 12
+undefended_corr_cnt: 101
+undefended_corr_cnt: 101
+undefended_corr_cnt: 101
+undefended_corr_cnt: 101
+defended_corr_cnt: 125
+######################## ASR ########################
+undefended_asr_cnt: 60
+defended_corr_cnt: 125
+defended_corr_cnt: 125
+defended_corr_cnt: 125
+defended_asr_cnt: 10
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 60
+undefended_asr_cnt: 60
+undefended_asr_cnt: 60
+defended_asr_cnt: 10
+defended_asr_cnt: 10
+defended_asr_cnt: 10
+undefended_corr_cnt: 79
+undefended_corr_cnt: 79
+defended_corr_cnt: 117
+defended_corr_cnt: 117
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 63
+undefended_asr_cnt: 63
+undefended_corr_cnt: 79
+defended_asr_cnt: 15
+defended_asr_cnt: 15
+undefended_corr_cnt: 79
+defended_corr_cnt: 117
+######################## ASR ########################
+undefended_asr_cnt: 63
+defended_asr_cnt: 15
+defended_corr_cnt: 117
+######################## ASR ########################
+undefended_asr_cnt: 63
+defended_asr_cnt: 15
+undefended_corr_cnt: 91
+undefended_corr_cnt: 91
+undefended_corr_cnt: 91
+undefended_corr_cnt: 91
+defended_corr_cnt: 122
+defended_corr_cnt: 122
+defended_corr_cnt: 122
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 66
+undefended_asr_cnt: 66
+undefended_asr_cnt: 66
+defended_asr_cnt: 7
+defended_asr_cnt: 7
+defended_asr_cnt: 7
+defended_corr_cnt: 122
+######################## ASR ########################
+undefended_asr_cnt: 66
+defended_asr_cnt: 7
+undefended_corr_cnt: 89
+undefended_corr_cnt: 89
+undefended_corr_cnt: 89
+undefended_corr_cnt: 89
+defended_corr_cnt: 123
+defended_corr_cnt: 123
+defended_corr_cnt: 123
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 63
+undefended_asr_cnt: 63
+undefended_asr_cnt: 63
+defended_asr_cnt: 12
+defended_asr_cnt: 12
+defended_corr_cnt: 123
+defended_asr_cnt: 12
+######################## ASR ########################
+undefended_asr_cnt: 63
+defended_asr_cnt: 12
+undefended_corr_cnt: 56
+defended_corr_cnt: 112
+######################## ASR ########################
+undefended_asr_cnt: 73
+defended_asr_cnt: 13
+undefended_corr_cnt: 56
+undefended_corr_cnt: 56
+undefended_corr_cnt: 56
+defended_corr_cnt: 112
+defended_corr_cnt: 112
+defended_corr_cnt: 112
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 73
+undefended_asr_cnt: 73
+undefended_asr_cnt: 73
+defended_asr_cnt: 13
+defended_asr_cnt: 13
+defended_asr_cnt: 13
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+undefended_corr_cnt: 197
+undefended_corr_cnt: 197
+undefended_corr_cnt: 197
+undefended_corr_cnt: 197
+defended_corr_cnt: 127
+######################## ASR ########################
+undefended_asr_cnt: 38
+defended_asr_cnt: 22
+defended_corr_cnt: 127
+defended_corr_cnt: 127
+defended_corr_cnt: 127
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 38
+undefended_asr_cnt: 38
+undefended_asr_cnt: 38
+defended_asr_cnt: 22
+defended_asr_cnt: 22
+defended_asr_cnt: 22
+undefended_corr_cnt: 168
+defended_corr_cnt: 118
+######################## ASR ########################
+undefended_asr_cnt: 50
+undefended_corr_cnt: 168
+defended_asr_cnt: 23
+undefended_corr_cnt: 168
+undefended_corr_cnt: 168
+defended_corr_cnt: 118
+######################## ASR ########################
+undefended_asr_cnt: 50
+defended_asr_cnt: 23
+defended_corr_cnt: 118
+defended_corr_cnt: 118
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 50
+undefended_asr_cnt: 50
+defended_asr_cnt: 23
+defended_asr_cnt: 23
+undefended_corr_cnt: 125
+undefended_corr_cnt: 125
+undefended_corr_cnt: 125
+undefended_corr_cnt: 125
+defended_corr_cnt: 127
+######################## ASR ########################
+undefended_asr_cnt: 58
+defended_corr_cnt: 127
+defended_corr_cnt: 127
+defended_asr_cnt: 14
+defended_corr_cnt: 127
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 58
+undefended_asr_cnt: 58
+undefended_asr_cnt: 58
+defended_asr_cnt: 14
+defended_asr_cnt: 14
+defended_asr_cnt: 14
+undefended_corr_cnt: 116
+defended_corr_cnt: 124
+######################## ASR ########################
+undefended_asr_cnt: 61
+defended_asr_cnt: 15
+undefended_corr_cnt: 116
+undefended_corr_cnt: 116
+undefended_corr_cnt: 116
+defended_corr_cnt: 124
+######################## ASR ########################
+undefended_asr_cnt: 61
+defended_corr_cnt: 124
+defended_corr_cnt: 124
+defended_asr_cnt: 15
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 61
+undefended_asr_cnt: 61
+defended_asr_cnt: 15
+defended_asr_cnt: 15
+undefended_corr_cnt: 104
+undefended_corr_cnt: 104
+undefended_corr_cnt: 104
+undefended_corr_cnt: 104
+defended_corr_cnt: 146
+######################## ASR ########################
+undefended_asr_cnt: 61
+defended_asr_cnt: 12
+defended_corr_cnt: 146
+defended_corr_cnt: 146
+defended_corr_cnt: 146
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 61
+undefended_asr_cnt: 61
+undefended_asr_cnt: 61
+defended_asr_cnt: 12
+defended_asr_cnt: 12
+defended_asr_cnt: 12
+undefended_corr_cnt: 106
+undefended_corr_cnt: 106
+undefended_corr_cnt: 106
+undefended_corr_cnt: 106
+defended_corr_cnt: 129
+######################## ASR ########################
+undefended_asr_cnt: 66
+defended_asr_cnt: 14
+defended_corr_cnt: 129
+defended_corr_cnt: 129
+defended_corr_cnt: 129
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 66
+undefended_asr_cnt: 66
+undefended_asr_cnt: 66
+defended_asr_cnt: 14
+defended_asr_cnt: 14
+defended_asr_cnt: 14
+undefended_corr_cnt: 84
+undefended_corr_cnt: 84
+undefended_corr_cnt: 84
+defended_corr_cnt: 146
+defended_corr_cnt: 146
+undefended_corr_cnt: 84
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 69
+undefended_asr_cnt: 69
+defended_corr_cnt: 146
+defended_asr_cnt: 8
+defended_asr_cnt: 8
+######################## ASR ########################
+undefended_asr_cnt: 69
+defended_corr_cnt: 146
+defended_asr_cnt: 8
+######################## ASR ########################
+undefended_asr_cnt: 69
+defended_asr_cnt: 8
+undefended_corr_cnt: 92
+defended_corr_cnt: 138
+######################## ASR ########################
+undefended_asr_cnt: 62
+defended_asr_cnt: 9
+undefended_corr_cnt: 92
+undefended_corr_cnt: 92
+undefended_corr_cnt: 92
+defended_corr_cnt: 138
+######################## ASR ########################
+undefended_asr_cnt: 62
+defended_corr_cnt: 138
+defended_asr_cnt: 9
+defended_corr_cnt: 138
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 62
+undefended_asr_cnt: 62
+defended_asr_cnt: 9
+defended_asr_cnt: 9
+undefended_corr_cnt: 86
+undefended_corr_cnt: 86
+undefended_corr_cnt: 86
+defended_corr_cnt: 150
+defended_corr_cnt: 150
+defended_corr_cnt: 150
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 71
+undefended_asr_cnt: 71
+undefended_asr_cnt: 71
+defended_asr_cnt: 8
+defended_asr_cnt: 8
+defended_asr_cnt: 8
+undefended_corr_cnt: 86
+defended_corr_cnt: 150
+######################## ASR ########################
+undefended_asr_cnt: 71
+defended_asr_cnt: 8
+undefended_corr_cnt: 55
+undefended_corr_cnt: 55
+defended_corr_cnt: 138
+defended_corr_cnt: 138
+######################## ASR ########################
+######################## ASR ########################
+undefended_corr_cnt: 55
+undefended_asr_cnt: 72
+undefended_asr_cnt: 72
+defended_asr_cnt: 15
+defended_asr_cnt: 15
+undefended_corr_cnt: 55
+defended_corr_cnt: 138
+######################## ASR ########################
+undefended_asr_cnt: 72
+defended_asr_cnt: 15
+defended_corr_cnt: 138
+######################## ASR ########################
+undefended_asr_cnt: 72
+defended_asr_cnt: 15
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+undefended_corr_cnt: 189
+undefended_corr_cnt: 189
+defended_corr_cnt: 160
+defended_corr_cnt: 160
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 39
+undefended_asr_cnt: 39
+defended_asr_cnt: 24
+undefended_corr_cnt: 189
+defended_asr_cnt: 24
+undefended_corr_cnt: 189
+defended_corr_cnt: 160
+######################## ASR ########################
+undefended_asr_cnt: 39
+defended_asr_cnt: 24
+defended_corr_cnt: 160
+######################## ASR ########################
+undefended_asr_cnt: 39
+defended_asr_cnt: 24
+undefended_corr_cnt: 178
+defended_corr_cnt: 158
+######################## ASR ########################
+undefended_asr_cnt: 42
+defended_asr_cnt: 18
+undefended_corr_cnt: 178
+undefended_corr_cnt: 178
+defended_corr_cnt: 158
+undefended_corr_cnt: 178
+######################## ASR ########################
+defended_corr_cnt: 158
+undefended_asr_cnt: 42
+defended_asr_cnt: 18
+######################## ASR ########################
+undefended_asr_cnt: 42
+defended_asr_cnt: 18
+defended_corr_cnt: 158
+######################## ASR ########################
+undefended_asr_cnt: 42
+defended_asr_cnt: 18
+undefended_corr_cnt: 129
+defended_corr_cnt: 167
+######################## ASR ########################
+undefended_asr_cnt: 56
+undefended_corr_cnt: 129
+defended_asr_cnt: 19
+defended_corr_cnt: 167
+######################## ASR ########################
+undefended_corr_cnt: 129
+undefended_corr_cnt: 129
+undefended_asr_cnt: 56
+defended_asr_cnt: 19
+defended_corr_cnt: 167
+defended_corr_cnt: 167
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 56
+undefended_asr_cnt: 56
+defended_asr_cnt: 19
+defended_asr_cnt: 19
+undefended_corr_cnt: 121
+defended_corr_cnt: 169
+######################## ASR ########################
+undefended_asr_cnt: 64
+defended_asr_cnt: 18
+undefended_corr_cnt: 121
+undefended_corr_cnt: 121
+undefended_corr_cnt: 121
+defended_corr_cnt: 169
+######################## ASR ########################
+undefended_asr_cnt: 64
+defended_corr_cnt: 169
+defended_asr_cnt: 18
+defended_corr_cnt: 169
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 64
+undefended_asr_cnt: 64
+defended_asr_cnt: 18
+defended_asr_cnt: 18
+undefended_corr_cnt: 102
+undefended_corr_cnt: 102
+undefended_corr_cnt: 102
+undefended_corr_cnt: 102
+defended_corr_cnt: 171
+defended_corr_cnt: 171
+defended_corr_cnt: 171
+defended_corr_cnt: 171
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 62
+undefended_asr_cnt: 62
+undefended_asr_cnt: 62
+undefended_asr_cnt: 62
+defended_asr_cnt: 15
+defended_asr_cnt: 15
+defended_asr_cnt: 15
+defended_asr_cnt: 15
+undefended_corr_cnt: 97
+undefended_corr_cnt: 97
+undefended_corr_cnt: 97
+undefended_corr_cnt: 97
+defended_corr_cnt: 164
+defended_corr_cnt: 164
+defended_corr_cnt: 164
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 66
+undefended_asr_cnt: 66
+undefended_asr_cnt: 66
+defended_corr_cnt: 164
+defended_asr_cnt: 15
+defended_asr_cnt: 15
+defended_asr_cnt: 15
+######################## ASR ########################
+undefended_asr_cnt: 66
+defended_asr_cnt: 15
+undefended_corr_cnt: 92
+defended_corr_cnt: 167
+######################## ASR ########################
+undefended_asr_cnt: 68
+defended_asr_cnt: 14
+undefended_corr_cnt: 92
+undefended_corr_cnt: 92
+undefended_corr_cnt: 92
+defended_corr_cnt: 167
+######################## ASR ########################
+undefended_asr_cnt: 68
+defended_corr_cnt: 167
+defended_corr_cnt: 167
+defended_asr_cnt: 14
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 68
+undefended_asr_cnt: 68
+defended_asr_cnt: 14
+defended_asr_cnt: 14
+undefended_corr_cnt: 96
+undefended_corr_cnt: 96
+undefended_corr_cnt: 96
+undefended_corr_cnt: 96
+defended_corr_cnt: 166
+######################## ASR ########################
+undefended_asr_cnt: 64
+defended_asr_cnt: 18
+defended_corr_cnt: 166
+defended_corr_cnt: 166
+defended_corr_cnt: 166
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 64
+undefended_asr_cnt: 64
+undefended_asr_cnt: 64
+defended_asr_cnt: 18
+defended_asr_cnt: 18
+defended_asr_cnt: 18
+undefended_corr_cnt: 82
+undefended_corr_cnt: 82
+undefended_corr_cnt: 82
+undefended_corr_cnt: 82
+defended_corr_cnt: 172
+######################## ASR ########################
+undefended_asr_cnt: 68
+defended_corr_cnt: 172
+defended_asr_cnt: 17
+defended_corr_cnt: 172
+defended_corr_cnt: 172
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 68
+undefended_asr_cnt: 68
+undefended_asr_cnt: 68
+defended_asr_cnt: 17
+defended_asr_cnt: 17
+defended_asr_cnt: 17
+undefended_corr_cnt: 59
+defended_corr_cnt: 167
+######################## ASR ########################
+undefended_asr_cnt: 75
+undefended_corr_cnt: 59
+defended_asr_cnt: 15
+undefended_corr_cnt: 59
+undefended_corr_cnt: 59
+defended_corr_cnt: 167
+defended_corr_cnt: 167
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 75
+undefended_asr_cnt: 75
+defended_corr_cnt: 167
+defended_asr_cnt: 15
+defended_asr_cnt: 15
+######################## ASR ########################
+undefended_asr_cnt: 75
+defended_asr_cnt: 15
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+abs: 3.0, relative: 0.3
+undefended_corr_cnt: 188
+undefended_corr_cnt: 188
+defended_corr_cnt: 188
+defended_corr_cnt: 188
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 38
+undefended_asr_cnt: 38
+defended_asr_cnt: 21
+undefended_corr_cnt: 188
+defended_asr_cnt: 21
+undefended_corr_cnt: 188
+defended_corr_cnt: 188
+######################## ASR ########################
+undefended_asr_cnt: 38
+defended_asr_cnt: 21
+defended_corr_cnt: 188
+######################## ASR ########################
+undefended_asr_cnt: 38
+defended_asr_cnt: 21
+undefended_corr_cnt: 176
+undefended_corr_cnt: 176
+defended_corr_cnt: 193
+defended_corr_cnt: 193
+undefended_corr_cnt: 176
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 49
+undefended_asr_cnt: 49
+defended_asr_cnt: 15
+defended_asr_cnt: 15
+undefended_corr_cnt: 176
+defended_corr_cnt: 193
+######################## ASR ########################
+undefended_asr_cnt: 49
+defended_asr_cnt: 15
+defended_corr_cnt: 193
+######################## ASR ########################
+undefended_asr_cnt: 49
+defended_asr_cnt: 15
+undefended_corr_cnt: 132
+undefended_corr_cnt: 132
+undefended_corr_cnt: 132
+defended_corr_cnt: 198
+defended_corr_cnt: 198
+defended_corr_cnt: 198
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 54
+undefended_asr_cnt: 54
+undefended_asr_cnt: 54
+defended_asr_cnt: 16
+defended_asr_cnt: 16
+defended_asr_cnt: 16
+undefended_corr_cnt: 132
+defended_corr_cnt: 198
+######################## ASR ########################
+undefended_asr_cnt: 54
+defended_asr_cnt: 16
+undefended_corr_cnt: 115
+undefended_corr_cnt: 115
+defended_corr_cnt: 176
+######################## ASR ########################
+undefended_asr_cnt: 63
+defended_asr_cnt: 16
+undefended_corr_cnt: 115
+defended_corr_cnt: 176
+######################## ASR ########################
+undefended_asr_cnt: 63
+defended_asr_cnt: 16
+undefended_corr_cnt: 115
+defended_corr_cnt: 176
+######################## ASR ########################
+undefended_asr_cnt: 63
+defended_asr_cnt: 16
+defended_corr_cnt: 176
+######################## ASR ########################
+undefended_asr_cnt: 63
+defended_asr_cnt: 16
+undefended_corr_cnt: 110
+undefended_corr_cnt: 110
+undefended_corr_cnt: 110
+undefended_corr_cnt: 110
+defended_corr_cnt: 189
+defended_corr_cnt: 189
+defended_corr_cnt: 189
+defended_corr_cnt: 189
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 62
+undefended_asr_cnt: 62
+undefended_asr_cnt: 62
+undefended_asr_cnt: 62
+defended_asr_cnt: 14
+defended_asr_cnt: 14
+defended_asr_cnt: 14
+defended_asr_cnt: 14
+undefended_corr_cnt: 102
+defended_corr_cnt: 190
+######################## ASR ########################
+undefended_asr_cnt: 61
+undefended_corr_cnt: 102
+defended_asr_cnt: 15
+undefended_corr_cnt: 102
+defended_corr_cnt: 190
+undefended_corr_cnt: 102
+######################## ASR ########################
+undefended_asr_cnt: 61
+defended_asr_cnt: 15
+defended_corr_cnt: 190
+######################## ASR ########################
+undefended_asr_cnt: 61
+defended_corr_cnt: 190
+defended_asr_cnt: 15
+######################## ASR ########################
+undefended_asr_cnt: 61
+defended_asr_cnt: 15
+undefended_corr_cnt: 94
+undefended_corr_cnt: 94
+undefended_corr_cnt: 94
+undefended_corr_cnt: 94
+defended_corr_cnt: 197
+defended_corr_cnt: 197
+defended_corr_cnt: 197
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+defended_corr_cnt: 197
+undefended_asr_cnt: 65
+undefended_asr_cnt: 65
+undefended_asr_cnt: 65
+defended_asr_cnt: 20
+defended_asr_cnt: 20
+defended_asr_cnt: 20
+######################## ASR ########################
+undefended_asr_cnt: 65
+defended_asr_cnt: 20
+undefended_corr_cnt: 93
+undefended_corr_cnt: 93
+undefended_corr_cnt: 93
+undefended_corr_cnt: 93
+defended_corr_cnt: 203
+defended_corr_cnt: 203
+defended_corr_cnt: 203
+######################## ASR ########################
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 68
+undefended_asr_cnt: 68
+undefended_asr_cnt: 68
+defended_corr_cnt: 203
+defended_asr_cnt: 19
+defended_asr_cnt: 19
+defended_asr_cnt: 19
+######################## ASR ########################
+undefended_asr_cnt: 68
+defended_asr_cnt: 19
+undefended_corr_cnt: 89
+defended_corr_cnt: 190
+######################## ASR ########################
+undefended_asr_cnt: 64
+defended_asr_cnt: 17
+undefended_corr_cnt: 89
+undefended_corr_cnt: 89
+undefended_corr_cnt: 89
+defended_corr_cnt: 190
+######################## ASR ########################
+undefended_asr_cnt: 64
+defended_asr_cnt: 17
+defended_corr_cnt: 190
+defended_corr_cnt: 190
+######################## ASR ########################
+######################## ASR ########################
+undefended_asr_cnt: 64
+undefended_asr_cnt: 64
+defended_asr_cnt: 17
+defended_asr_cnt: 17
+undefended_corr_cnt: 53
+defended_corr_cnt: 203
+######################## ASR ########################
+undefended_asr_cnt: 75
+undefended_corr_cnt: 53
+defended_asr_cnt: 18
+undefended_corr_cnt: 53
+defended_corr_cnt: 203
+######################## ASR ########################
+undefended_corr_cnt: 53
+undefended_asr_cnt: 75
+defended_asr_cnt: 18
+defended_corr_cnt: 203
+######################## ASR ########################
+undefended_asr_cnt: 75
+defended_corr_cnt: 203
+defended_asr_cnt: 18
+######################## ASR ########################
+undefended_asr_cnt: 75
+defended_asr_cnt: 18
