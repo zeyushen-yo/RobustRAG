@@ -2,7 +2,6 @@
 *.pyc
 *.out
 *.z
-log
 logs
 result
 result_certify

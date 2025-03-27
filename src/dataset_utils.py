@@ -43,6 +43,7 @@ class DataUtils: # base class for dataset
         answer = data_item['answer']
         response = clean_str(response)
         # if any answer is in the response, return true
+        print(answer, response)
         for ans in answer:
             if clean_str(ans) in response:
                 logger.debug('correct!')
@@ -101,6 +102,7 @@ class Biogen(DataUtils):
 
 
 NQ = RealtimeQA 
+SimpleQA = RealtimeQA
 def load_data(dataset_name,top_k,data_path=None):
     data_path = data_path if data_path else f'data/{dataset_name.split("-")[0]}.json'
     if dataset_name == 'realtimeqa-mc':
@@ -109,6 +111,8 @@ def load_data(dataset_name,top_k,data_path=None):
         return RealtimeQA(data_path,top_k,as_multi_choices=False)
     elif dataset_name == 'open_nq':
         return NQ(data_path,top_k,as_multi_choices=False)
+    elif dataset_name == 'simpleqa':
+        return SimpleQA(data_path,top_k,as_multi_choices=False)
     elif dataset_name == 'biogen':
         return Biogen(data_path,top_k)
     else: # shouldn't happen

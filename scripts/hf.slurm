@@ -13,4 +13,4 @@
 module purge
 module load anaconda3/2024.2
 conda activate RobustRAG
-deepspeed --num_gpu=4 main.py --model_name deepseek7b --dataset_name realtimeqa --rep 5 --top_k 10 --defense_method keyword --alpha 0.3 --beta 3 --attack_method Poison 
+deepspeed --num_gpu=4 main.py --model_name deepseek7b --dataset_name realtimeqa --rep 5 --top_k 10 --defense_method keyword --alpha 0.3 --beta 3 --attack_method PIA 
