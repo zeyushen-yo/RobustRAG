@@ -171,6 +171,7 @@ class WeightedKeywordAgg(RRAG):
                 token_counter[phrase]+=weight
 
         # filtering 
+        print(phrase_list)
         count_threshold = min(self.absolute,self.relative*len(seperate_responses))
         logger.debug(sorted(token_counter.items(), key=lambda x: (len(x[0]),x[0]), reverse=True))
         logger.debug(f'count_threshold,{count_threshold}')

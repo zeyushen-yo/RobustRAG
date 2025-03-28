@@ -1,0 +1,99 @@
+Namespace(local_rank=0, model_name='mistral7b', dataset_name='realtimeqa', rep=5, top_k=10, attack_method='Poison', defense_method='decoding', alpha=0.3, beta=3.0, eta=0.0, temperature=1.0, debug=False, save_response=False, use_cache=False, no_vanilla=False)
+Loading data from data/realtimeqa.json......
+Total samples: 100
+Params: Gamma: 0.8, rank: 0
+undefended_corr_cnt: 297
+defended_corr_cnt: 265
+######################## ASR ########################
+undefended_asr_cnt: 35
+defended_asr_cnt: 105
+Params: Gamma: 0.8, rank: 1
+undefended_corr_cnt: 287
+defended_corr_cnt: 280
+######################## ASR ########################
+undefended_asr_cnt: 38
+defended_asr_cnt: 85
+Params: Gamma: 0.8, rank: 2
+undefended_corr_cnt: 275
+defended_corr_cnt: 290
+######################## ASR ########################
+undefended_asr_cnt: 41
+defended_asr_cnt: 70
+Params: Gamma: 0.8, rank: 3
+undefended_corr_cnt: 272
+defended_corr_cnt: 300
+######################## ASR ########################
+undefended_asr_cnt: 52
+defended_asr_cnt: 50
+Params: Gamma: 0.8, rank: 4
+undefended_corr_cnt: 242
+defended_corr_cnt: 305
+######################## ASR ########################
+undefended_asr_cnt: 58
+defended_asr_cnt: 55
+Params: Gamma: 0.8, rank: 5
+undefended_corr_cnt: 232
+defended_corr_cnt: 310
+######################## ASR ########################
+undefended_asr_cnt: 55
+defended_asr_cnt: 50
+Params: Gamma: 0.8, rank: 6
+undefended_corr_cnt: 231
+defended_corr_cnt: 310
+######################## ASR ########################
+undefended_asr_cnt: 59
+defended_asr_cnt: 40
+Params: Gamma: 0.8, rank: 7
+undefended_corr_cnt: 220
+defended_corr_cnt: 305
+######################## ASR ########################
+undefended_asr_cnt: 61
+defended_asr_cnt: 40
+Params: Gamma: 0.8, rank: 8
+undefended_corr_cnt: 174
+defended_corr_cnt: 315
+######################## ASR ########################
+undefended_asr_cnt: 62
+defended_asr_cnt: 40
+Params: Gamma: 0.8, rank: 9
+undefended_corr_cnt: 83
+defended_corr_cnt: 305
+######################## ASR ########################
+undefended_asr_cnt: 80
+defended_asr_cnt: 30
+Params: Gamma: 1.0, rank: 0
+undefended_corr_cnt: 299
+defended_corr_cnt: 280
+######################## ASR ########################
+undefended_asr_cnt: 37
+defended_asr_cnt: 60
+Params: Gamma: 1.0, rank: 1
+undefended_corr_cnt: 294
+defended_corr_cnt: 285
+######################## ASR ########################
+undefended_asr_cnt: 38
+defended_asr_cnt: 60
+Params: Gamma: 1.0, rank: 2
+undefended_corr_cnt: 277
+defended_corr_cnt: 280
+######################## ASR ########################
+undefended_asr_cnt: 47
+defended_asr_cnt: 50
+Params: Gamma: 1.0, rank: 3
+undefended_corr_cnt: 270
+defended_corr_cnt: 280
+######################## ASR ########################
+undefended_asr_cnt: 52
+defended_asr_cnt: 55
+Params: Gamma: 1.0, rank: 4
+undefended_corr_cnt: 244
+defended_corr_cnt: 275
+######################## ASR ########################
+undefended_asr_cnt: 54
+defended_asr_cnt: 50
+Params: Gamma: 1.0, rank: 5
+undefended_corr_cnt: 232
+defended_corr_cnt: 300
+######################## ASR ########################
+undefended_asr_cnt: 57
+defended_asr_cnt: 70
