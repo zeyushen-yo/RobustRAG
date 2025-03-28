@@ -206,13 +206,13 @@ class HFModel(BaseModel):
         with open("configs/ds_config.json", 'r') as f:
             ds_config = json.load(f)
 
-        self.model = deepspeed.init_inference(
-            self.model,
-            config=ds_config,
-            mp_size=4,    
-            max_tokens=8192,
-            replace_method="auto"
-        )
+        # self.model = deepspeed.init_inference(
+        #     self.model,
+        #     config=ds_config,
+        #     mp_size=4,    
+        #     max_tokens=8192,
+        #     replace_method="auto"
+        # )
 
         self.generation_kwargs = {
             'max_new_tokens':self.max_output_tokens,
@@ -298,16 +298,26 @@ class GPTModel(BaseModel):
         return response
         
 
-    def _batch_query(self,prompt_list):
-
-        prompt_list_with_template = []
-        for prompt in prompt_list:
-            prompt_list_with_template.append([
+    def _batch_query(self, prompt_list):
+        prompt_list_with_template = [
+            [
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": prompt}
-            ])
-        result = batch_completion(model=self.model_name, messages=prompt_list_with_template, max_tokens=self.max_output_tokens)
-        response_list = [x.choices[0].message.content for x in result]
+            ]
+            for prompt in prompt_list
+        ]
+        try:
+            result = batch_completion(
+                model=self.model_name,
+                messages=prompt_list_with_template,
+                max_tokens=self.max_output_tokens
+            )
+            response_list = [x.choices[0].message.content for x in result]
+        except Exception as e:
+            print("Error during batch_completion:", e)
+            response_list = []
+            for prompt in prompt_list:
+                response_list.append(self._query(prompt))
 
         return response_list
 

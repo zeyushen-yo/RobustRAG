@@ -81,7 +81,7 @@ def main():
     if args.defense_method == 'greedy':
         gamma_values = [1] # dummy. gamma is not useful in this case
     else:
-        gamma_values = [0.8, 0.85, 0.9, 0.95, 1.0]
+        gamma_values = [0.8, 1.0]
 
     robustness_all = {gamma: [] for gamma in gamma_values}
 
@@ -163,6 +163,7 @@ def main():
                                 defended_asr_cnt += defended_asr
                             response_list.append({"query":data_item["question"],"defended":response_defended})
 
+            logger.info(f'Params: Gamma: {gamma}, rank: {i}')
             logger.info(f'undefended_corr_cnt: {undefended_corr_cnt}')
             logger.info(f'defended_corr_cnt: {defended_corr_cnt}')
 
