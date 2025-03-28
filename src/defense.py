@@ -91,11 +91,21 @@ class WeightedMajorityVoting(RRAG):
 
         cntr = defaultdict(float)
 
+        total_weight = 0
+        total_weight_orig = 0
         for i, pred in enumerate(seperate_preds):
             if pred == 'E.':
                 continue
             weight = gamma ** i  # First position weight=1, second=gamma, third=gamma^2, etc.
-            cntr[pred] += weight
+            total_weight += weight
+            total_weight_orig += 1
+
+        for i, pred in enumerate(seperate_preds):
+            if pred == 'E.':
+                continue 
+            weight = gamma ** i      
+            cntr[pred] += weight * total_weight_orig / total_weight
+        
         cntr = Counter(cntr)
         cntr = cntr.most_common(2)
 
@@ -128,12 +138,16 @@ class WeightedKeywordAgg(RRAG):
         abstained_idx = []
         seperate_responses = []
         logger.debug(f'Seperate responses:\n')
+        total_weight = 0
+        total_weight_orig = 0
         for i,x in enumerate(seperate_responses_raw):
             logger.debug(f'{i}: {x}\n')
             if "I don't" in x:
                 abstained_idx.append(i)
             else:
                 seperate_responses.append((x, gamma ** i))
+                total_weight += gamma ** i
+                total_weight_orig += 1
 
         logger.debug(f'Number of retained responses: {len(seperate_responses)}')
 
@@ -168,7 +182,7 @@ class WeightedKeywordAgg(RRAG):
             phrase_list = set(phrase_list) # only consider unique keywords
             all_extracted_phrase.append(phrase_list)
             for phrase in phrase_list:
-                token_counter[phrase]+=weight
+                token_counter[phrase]+=weight * total_weight_orig / total_weight
 
         # filtering 
         print(phrase_list)
