@@ -17,7 +17,7 @@ exp_list = [
 for exp in exp_list:
     print(f"Plotting {exp}")
     
-    in_file = f"./output/{exp}_accuracy.csv"
+    in_file = f"./output/{exp}.csv"
 
     df = pd.read_csv(in_file)
 
@@ -26,11 +26,13 @@ for exp in exp_list:
 
     for gamma in df["gamma"].unique():
         subset = df[df["gamma"] == gamma]
-        label_undefended = f"Gamma {gamma} undefended (Vanilla)"
-        label_defended = f"Gamma {gamma} defended"
-
-        plt.plot(subset["rank"], subset["undefended_acc"], marker='o', label=label_undefended)
+        
+        label_defended = f"Gamma {gamma} (new)" if gamma != 1 else f"Gamma {gamma} (RobustRAG)"
         plt.plot(subset["rank"], subset["defended_acc"], marker='x', label=label_defended)
+    
+        if gamma == 1:
+            label_undefended = f"Vanilla"
+            plt.plot(subset["rank"], subset["undefended_acc"], marker='o', label=label_undefended)
 
     plt.xlabel("Rank")
     plt.ylabel("Accuracy")
