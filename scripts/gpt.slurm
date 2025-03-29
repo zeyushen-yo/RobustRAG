@@ -11,6 +11,8 @@
 module purge
 module load anaconda3/2024.2
 conda activate RobustRAG
-python main.py --model_name gpt-4o --dataset_name simpleqa --rep 2 --top_k 10 --defense_method keyword --alpha 0.3 --beta 3 --attack_method PIA
-python main.py --model_name gpt-4o --dataset_name simpleqa --rep 2 --top_k 10 --defense_method keyword --alpha 0.3 --beta 3 --attack_method Poison
-python main.py --model_name gpt-4o --dataset_name simpleqa --rep 2 --top_k 10 --defense_method keyword --alpha 0.3 --beta 3
+
+python main.py --model_name gpt-4o --dataset_name realtimeqa --rep 2 --top_k 10 --defense_method keyword --alpha 0.3 --beta 3 --attack_method none  --debug
+#python main.py --model_name gpt-4o --dataset_name realtimeqa --rep 2 --top_k 10 --defense_method keyword --alpha 0.3 --beta 3 --attack_method PIA --debug
+#python main.py --model_name gpt-4o --dataset_name realtimeqa --rep 2 --top_k 10 --defense_method keyword --alpha 0.3 --beta 3 --attack_method Poison  --debug
+
