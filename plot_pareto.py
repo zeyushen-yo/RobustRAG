@@ -19,7 +19,7 @@ for attack in ["none", "PIA", "Poison"]:
         # Define data points
         data = {
             "keyword weighted ($\gamma=0.8$)": get_metrics(keyword_df, gamma=0.8, rank=attack_position),
-            "keyword unweighted ($\gamma=1.90$)": get_metrics(keyword_df, gamma=1.0, rank=attack_position),
+            "keyword unweighted ($\gamma=1.0$)": get_metrics(keyword_df, gamma=1.0, rank=attack_position),
             "sampling weighted ($\gamma=0.8$)": get_metrics(sampling_df, gamma=0.8, rank=attack_position),
             "sampling unweighted ($\gamma=1.0$)": get_metrics(sampling_df, gamma=1.0, rank=attack_position),
         }
