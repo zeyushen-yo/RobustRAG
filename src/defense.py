@@ -337,3 +337,52 @@ class GreedyRAG(RRAG):
             malicious_thres=self.malicious_thres
         )
         return output_text, flagged_docs
+    
+
+class RandomSamplingReQueryAgg(RRAG):
+    def __init__(self, llm, sample_size=5, num_samples=5, gamma=0.8):
+        super().__init__(llm)
+        self.sample_size = sample_size
+        self.num_samples = num_samples
+        self.gamma = gamma
+
+    def query(self, data_item):
+        question = data_item["question"]
+        all_chunks = [c for c in data_item["topk_content"]]
+        n = len(all_chunks)
+
+        # Assign geometric weights to the chunks
+        weights = np.array([self.gamma ** i for i in range(n)])
+        weights /= weights.sum()  # Normalize to probability distribution
+
+        # First-stage sampling + querying
+        sampled_responses = []
+        for i in range(self.num_samples):
+            sampled_chunks = list(np.random.choice(all_chunks, size=min(self.sample_size, n), replace=False, p=weights))
+            prompt = self.build_prompt(question, sampled_chunks)
+            logger.debug(f"\t\tPrompt with sample #{i}: {prompt}\n END PROMPT")
+            response = self.llm.query(prompt)
+            sampled_responses.append(response)
+
+        logger.debug(f"First-stage sampled responses:\n{sampled_responses}")
+
+        # Build second-stage re-query prompt using sampled responses
+        requery_prompt = self.build_requery_prompt(question, sampled_responses)
+        final_response = self.llm.query(requery_prompt)
+
+        logger.debug(f"Requery prompt:\n{requery_prompt}")
+        logger.debug(f"Final response:\n{final_response}")
+
+        return final_response
+
+    def build_prompt(self, question, chunks):
+        context_text = "\n\n".join(chunks)
+        return f"Answer the following question based on the context below. It is very important that the answer should be based solely on evidence found in the context information, not your internal knowledge. The answer should be as short as possible and can only use words found in the context information. \n\nContext:\n{context_text}\n\nQuestion: {question}\nAnswer:"
+
+    def build_requery_prompt(self, question, responses):
+        response_text = "\n".join([f"Response {i+1}: {r}" for i, r in enumerate(responses)])
+        return (
+            f"Given the following responses obtained using different sampled subsets of retrieved documents, "
+            '''what is the most accurate and supported answer to the question? The answer should be as short as possible and can only use words found in the context information, not your internal knowledge.\n\n'''
+            f"{response_text}\n\nQuestion: {question}\nAnswer:"
+        )

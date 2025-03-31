@@ -25,7 +25,7 @@ def parse_args():
     parser.add_argument('--attack_method', type=str, default='none',choices=['none','Poison','PIA'], help='The attack method to use (Poison or Prompt Injection)')
 
     # defense
-    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding','greedy'],help='The defense method to use')
+    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding','greedy', 'sampling'],help='The defense method to use')
     parser.add_argument('--alpha', type=float, default=0.3, help='keyword filtering threshold alpha')
     parser.add_argument('--beta', type=float, default=3.0, help='keyword filtering threshold beta')
     parser.add_argument('--eta', type=float, default=0.0, help='decoding confidence threshold eta')
@@ -98,6 +98,13 @@ def main():
         elif args.defense_method == 'greedy':
             # TODO: change alpha and beta to CLI
             model = GreedyRAG(llm, args, uncertain_thres=args.eta, malicious_thres=0.2)
+        elif args.defense_method == "sampling":
+            model = RandomSamplingReQueryAgg(
+                llm=llm,
+                sample_size=5,
+                num_samples=2,
+                gamma=gamma,
+            )
 
         no_attack = args.attack_method == 'none' or args.top_k<=0 # do not run attack
 
