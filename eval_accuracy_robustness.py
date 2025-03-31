@@ -12,13 +12,22 @@ exp_list = [
 
     "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attacknone",
     "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPIA",
+    "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPoison",
+
+    #"realtimeqa-llama3b-sampling-rep5-top10-attacknone",
+    #"realtimeqa-llama3b-sampling-rep5-top10-attackPIA",
+    #"realtimeqa-llama3b-sampling-rep5-top10-attackPoison",
+
+    #"simpleqa-llama3b-sampling-rep5-top10-attacknone",
+    #"simpleqa-llama3b-sampling-rep5-top10-attackPIA",
+    #"simpleqa-llama3b-sampling-rep5-top10-attackPoison",
 ]
 
 for exp in exp_list:
     print(f"Processing {exp}")
-    realtimeqa_total_samples = 100
+    total_samples = 100
     rep = 2 if "gpt" in exp else 5
-    total_cnt = realtimeqa_total_samples * rep
+    total_cnt = total_samples * rep
 
     file_name = f"./log/{exp}.log"
 
@@ -49,7 +58,7 @@ for exp in exp_list:
                         undef_asr_match = re.search(r'\d+', lines[i + 4])
                         def_asr_match = re.search(r'\d+', lines[i + 5])
                         if undef_asr_match and def_asr_match:
-                            row["undefended_asr"] = int(undef_asr_match.group()) / total_cnt
+                            row["undefended_asr"] = int(undef_asr_match.group()) / total_samples
                             row["defended_asr"] = int(def_asr_match.group()) / total_cnt
                         else:
                             row["undefended_asr"] = 0
