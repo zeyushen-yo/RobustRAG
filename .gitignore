@@ -7,3 +7,7 @@ result_certify
 data/clean_data.py
 scripts/hf.slurm
 scripts/gpt.slurm
+log/simpleqa-llama3b-sampling-rep5-top10-attackPIA.log
+log/simpleqa-llama3b-sampling-rep5-top10-attackPoison.log
+log/realtimeqa-llama3b-sampling-rep5-top10-attackPIA.log
+log/realtimeqa-llama3b-sampling-rep5-top10-attackPoison.log
