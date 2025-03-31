@@ -11,3 +11,6 @@ log/simpleqa-llama3b-sampling-rep5-top10-attackPIA.log
 log/simpleqa-llama3b-sampling-rep5-top10-attackPoison.log
 log/realtimeqa-llama3b-sampling-rep5-top10-attackPIA.log
 log/realtimeqa-llama3b-sampling-rep5-top10-attackPoison.log
+log/realtimeqa-gpt-4o-sampling-rep1-top10-attackPIA.log
+log/realtimeqa-llama3b-sampling-rep5-top10-attacknone.log
+log/simpleqa-llama3b-sampling-rep5-top10-attacknone.log
