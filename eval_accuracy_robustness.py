@@ -14,13 +14,9 @@ exp_list = [
     "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPIA",
     "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-rep5-top10-attackPoison",
-
-    #"simpleqa-llama3b-sampling-rep5-top10-attacknone",
-    #"simpleqa-llama3b-sampling-rep5-top10-attackPIA",
-    #"simpleqa-llama3b-sampling-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-rep5-top10-attackPoison",
 ]
 
 for exp in exp_list:

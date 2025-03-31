@@ -12,6 +12,11 @@ exp_list = [
 
     "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attacknone",
     "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPIA",
+    "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-rep5-top10-attackPoison",
 ]
 
 for exp in exp_list:
@@ -29,7 +34,19 @@ for exp in exp_list:
     for gamma in df["gamma"].unique():
         subset = df[df["gamma"] == gamma]
         
-        label_defended = f"Gamma {gamma} (new)" if gamma != 1 else f"Gamma {gamma} (RobustRAG)"
+        label_defended = ""
+        if gamma == 1:
+            if "sampling" not in exp:
+                label_defended += "keyword unweighted"
+            else:
+                label_defended += "sampling unweighted"
+        elif gamma != 1:
+            if "sampling" not in exp:
+                label_defended += "keyword weighted"
+            else:
+                label_defended += "sampling weighted"
+        label_defended += f" ($\gamma$={gamma})"
+
         plt.plot(subset["rank"], [1 - asr for asr in subset["defended_asr"]], marker='x', label=label_defended)
         
         if gamma == 1:
@@ -38,7 +55,7 @@ for exp in exp_list:
 
     plt.xlabel("Rank")
     plt.ylabel("Robustness (1 - ASR)")
-    plt.ylim([0.5,1])
+    plt.ylim([0,1])
     plt.xticks([0,1,2,3,4,5,6,7,8,9])
     plt.title(exp)
     plt.legend()
