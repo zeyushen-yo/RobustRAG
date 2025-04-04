@@ -346,7 +346,7 @@ class RandomSamplingReQueryAgg(RRAG):
         self.num_samples = num_samples
         self.gamma = gamma
 
-    def query(self, data_item):
+    def query(self, data_item, gamma):
         question = data_item["question"]
         all_chunks = [c for c in data_item["topk_content"]]
         n = len(all_chunks)
@@ -360,7 +360,7 @@ class RandomSamplingReQueryAgg(RRAG):
         for i in range(self.num_samples):
             sampled_chunks = list(np.random.choice(all_chunks, size=min(self.sample_size, n), replace=False, p=weights))
             prompt = self.build_prompt(question, sampled_chunks)
-            logger.debug(f"\t\tPrompt with sample #{i}: {prompt}\n END PROMPT")
+            #logger.debug(f"\t\tPrompt with sample #{i}: {prompt}\n END PROMPT")
             response = self.llm.query(prompt)
             sampled_responses.append(response)
 
@@ -383,6 +383,6 @@ class RandomSamplingReQueryAgg(RRAG):
         response_text = "\n".join([f"Response {i+1}: {r}" for i, r in enumerate(responses)])
         return (
             f"Given the following responses obtained using different sampled subsets of retrieved documents, "
-            '''what is the most accurate and supported answer to the question? The answer should be as short as possible and can only use words found in the context information, not your internal knowledge.\n\n'''
+            '''What is the most accurate and supported answer to the question supported by the majority of the responses? The answer should be as short as possible and can only use words found in the context information, not your internal knowledge.\n\n'''
             f"{response_text}\n\nQuestion: {question}\nAnswer:"
         )

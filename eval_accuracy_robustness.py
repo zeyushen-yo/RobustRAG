@@ -17,6 +17,22 @@ exp_list = [
     "realtimeqa-llama3b-sampling-rep5-top10-attacknone",
     "realtimeqa-llama3b-sampling-rep5-top10-attackPIA",
     "realtimeqa-llama3b-sampling-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-3-5-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-3-3-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-3-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-3-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-9-3-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-9-5-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPoison",
 ]
 
 for exp in exp_list:
