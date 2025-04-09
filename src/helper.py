@@ -9,7 +9,7 @@ def get_log_name(args):
     elif args.defense_method == 'keyword': defense_str = f'{args.defense_method}-{args.alpha}-{args.beta}' 
     elif args.defense_method == 'decoding': defense_str = f'{args.defense_method}-{args.eta}' 
     elif args.defense_method == 'greedy': defense_str = f'{args.defense_method}-{args.eta}' 
-    elif args.defense_method == 'sampling': defense_str = f'{args.defense_method}-{args.T}-{args.m}' 
+    elif args.defense_method == 'sampling': defense_str = f'{args.defense_method}-{args.T}-{args.m}-{args.agg}' 
     else: defense_str = ""
     return f'{args.dataset_name}-{args.model_name}-{defense_str}-rep{args.rep}-top{args.top_k}-attack{args.attack_method}'
 

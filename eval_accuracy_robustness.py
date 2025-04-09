@@ -33,6 +33,30 @@ exp_list = [
     "realtimeqa-llama3b-sampling-9-5-rep5-top10-attacknone",
     "realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPIA",
     "realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attackPoison",
 ]
 
 for exp in exp_list:

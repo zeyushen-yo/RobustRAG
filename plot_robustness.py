@@ -37,7 +37,33 @@ exp_list = [
     "realtimeqa-llama3b-sampling-9-5-rep5-top10-attacknone",
     "realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPIA",
     "realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attackPoison",
 ]
+
+plt.rcParams.update({'font.size': 14})
 
 for exp in exp_list:
     if "attacknone" in exp:
@@ -49,7 +75,7 @@ for exp in exp_list:
     df = pd.read_csv(in_file)
 
     # Plotting
-    plt.figure(figsize=(10, 6))
+    plt.figure(figsize=(10, 5))
 
     for gamma in df["gamma"].unique():
         subset = df[df["gamma"] == gamma]
@@ -82,3 +108,4 @@ for exp in exp_list:
     plt.grid(True)
     plt.tight_layout()
     plt.savefig(f"./figs_robustness/{exp}.png")
+    plt.close()

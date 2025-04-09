@@ -29,6 +29,9 @@ def parse_args():
     parser.add_argument('--alpha', type=float, default=0.3, help='keyword filtering threshold alpha')
     parser.add_argument('--beta', type=float, default=3.0, help='keyword filtering threshold beta')
     parser.add_argument('--eta', type=float, default=0.0, help='decoding confidence threshold eta')
+    parser.add_argument('--T', type=int, default=3, help='number of samples for sampling method')
+    parser.add_argument('--m', type=int, default=5, help='number of docs per sample for sampling method')
+    parser.add_argument('--agg', type=str, default="emb", help='method for aggregating responses from multiple samples')
 
     # long gen certifcation # not really used in the paper
     parser.add_argument('--temperature', type=float, default=1.0, help='The temperature for softmax')
@@ -81,7 +84,7 @@ def main():
     if args.defense_method == 'greedy':
         gamma_values = [1] # dummy. gamma is not useful in this case
     else:
-        gamma_values = [0.8, 1.0]
+        gamma_values = [0.5, 0.8, 1.0]
 
     robustness_all = {gamma: [] for gamma in gamma_values}
 
@@ -101,8 +104,8 @@ def main():
         elif args.defense_method == "sampling":
             model = RandomSamplingReQueryAgg(
                 llm=llm,
-                sample_size=5,
-                num_samples=2,
+                sample_size=args.m,
+                num_samples=args.T,
                 gamma=gamma,
             )
 

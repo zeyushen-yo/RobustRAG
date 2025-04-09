@@ -14,6 +14,11 @@ import copy
 from tqdm import tqdm
 from torch import LongTensor, FloatTensor
 import numpy as np
+from numpy import dot
+from numpy.linalg import norm
+import os
+import openai
+from sentence_transformers import SentenceTransformer
 
 import spacy
 import os
@@ -340,13 +345,87 @@ class GreedyRAG(RRAG):
     
 
 class RandomSamplingReQueryAgg(RRAG):
-    def __init__(self, llm, sample_size=5, num_samples=5, gamma=0.8):
+    def __init__(
+        self, 
+        llm,
+        sample_size=5, 
+        num_samples=3,
+        gamma=0.8
+    ):
         super().__init__(llm)
         self.sample_size = sample_size
         self.num_samples = num_samples
         self.gamma = gamma
 
+        self.use_openai = False
+        self.openai_model = "text-embedding-ada-002"
+        self.hf_model_name = "/scratch/gpfs/bi0600/all-mpnet-base-v2"
+
+        if not self.use_openai:
+            self.hf_model = SentenceTransformer( self.hf_model_name)
+
+    def get_openai_embeddings(self, text_list):
+        response = openai.Embedding.create(
+            model=self.openai_model,
+            input=text_list
+        )
+        embeddings = [item["embedding"] for item in response["data"]]
+        return embeddings
+
+    def get_hf_embeddings(self, text_list):
+        embeddings = self.hf_model.encode(text_list)
+        return embeddings
+
     def query(self, data_item, gamma):
+        question = data_item["question"]
+        all_chunks = data_item["topk_content"]
+        n = len(all_chunks)
+
+        # 1) Assign geometric weights to chunks: gamma^i
+        weights = np.array([self.gamma ** i for i in range(n)])
+        weights /= weights.sum()  # normalize
+
+        # 2) First-stage sampling: sample multiple subsets & query LLM
+        sampled_responses = []
+        for i in range(self.num_samples):
+            sampled_chunks = list(
+                np.random.choice(
+                    all_chunks,
+                    size=min(self.sample_size, n),
+                    replace=False,
+                    p=weights
+                )
+            )
+            prompt = self.build_prompt(question, sampled_chunks)
+            response = self.llm.query(prompt)
+            sampled_responses.append(response)
+
+        logger.debug(f"First-stage sampled responses:\n{sampled_responses}")
+
+        # 3) Second-stage: pick the response closest to the mean embedding
+        if self.use_openai:
+            response_embeddings = self.get_openai_embeddings(sampled_responses)
+        else:
+            response_embeddings = self.get_hf_embeddings(sampled_responses)
+
+        # Compute average (centroid) embedding
+        response_embeddings = np.array(response_embeddings)
+        avg_embedding = np.mean(response_embeddings, axis=0)
+
+        # Find whichever response is closest to this centroid
+        best_idx = None
+        best_sim = -float("inf")
+        for i, emb in enumerate(response_embeddings):
+            cos_sim = dot(emb, avg_embedding) / (norm(emb) * norm(avg_embedding))
+            if cos_sim > best_sim:
+                best_idx = i
+                best_sim = cos_sim
+        
+        final_response = sampled_responses[best_idx]
+        logger.debug(f"Second-stage final response:\n{final_response}")
+        return final_response
+    
+    def query_llm_aggregator(self, data_item, gamma):
         question = data_item["question"]
         all_chunks = [c for c in data_item["topk_content"]]
         n = len(all_chunks)
@@ -360,7 +439,6 @@ class RandomSamplingReQueryAgg(RRAG):
         for i in range(self.num_samples):
             sampled_chunks = list(np.random.choice(all_chunks, size=min(self.sample_size, n), replace=False, p=weights))
             prompt = self.build_prompt(question, sampled_chunks)
-            #logger.debug(f"\t\tPrompt with sample #{i}: {prompt}\n END PROMPT")
             response = self.llm.query(prompt)
             sampled_responses.append(response)
 
@@ -377,12 +455,12 @@ class RandomSamplingReQueryAgg(RRAG):
 
     def build_prompt(self, question, chunks):
         context_text = "\n\n".join(chunks)
-        return f"Answer the following question based on the context below. It is very important that the answer should be based solely on evidence found in the context information, not your internal knowledge. The answer should be as short as possible and can only use words found in the context information. \n\nContext:\n{context_text}\n\nQuestion: {question}\nAnswer:"
+        return f"Answer the following question based on the context below. It is very important that the answer should be based solely on evidence found in the context information. The answer should be as short as possible and can only use words found in the context information. \n\nContext:\n{context_text}\n\nQuestion: {question}\nAnswer:"
 
     def build_requery_prompt(self, question, responses):
         response_text = "\n".join([f"Response {i+1}: {r}" for i, r in enumerate(responses)])
         return (
             f"Given the following responses obtained using different sampled subsets of retrieved documents, "
-            '''What is the most accurate and supported answer to the question supported by the majority of the responses? The answer should be as short as possible and can only use words found in the context information, not your internal knowledge.\n\n'''
+            '''What is the most accurate and supported answer to the question supported by the majority of the responses? The answer should be as short as possible and can only use words found in the context information.\n\n'''
             f"{response_text}\n\nQuestion: {question}\nAnswer:"
         )
