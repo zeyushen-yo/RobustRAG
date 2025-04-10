@@ -2,65 +2,65 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 exp_list = [
-    #"realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attacknone",
-    #"realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPIA",
-    #"realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPoison",
+    "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attacknone",
+    "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPIA",
+    "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPoison",
 
-    #"realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attacknone",
+    "realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPoison",
 
-    #"realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attacknone",
-    #"realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPIA",
-    #"realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPoison",
+    "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attacknone",
+    "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPIA",
+    "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-rep5-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-3-5-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-3-5-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-3-5-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-3-5-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-3-3-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-3-3-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-3-3-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-3-3-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-3-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-3-rep5-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-9-3-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-9-3-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-9-5-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-9-5-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attackPoison",
 
     "realtimeqa-llama3b-astuterag-rep5-top10-attacknone",
     "realtimeqa-llama3b-astuterag-rep5-top10-attackPIA",
@@ -89,12 +89,7 @@ for exp in exp_list:
         subset = df[df["gamma"] == gamma]
         
         defense_method = exp.split("-")[2]
-        label_defended = ""
-        if gamma == 1:
-            label_defended += f"{defense_method} unweighted"
-        elif gamma != 1:
-            label_defended += f"{defense_method} weighted"
-
+        label_defended = f"{defense_method}"
         if defense_method in ["sampling", "keyword"]:
             label_defended += f" ($\gamma$={gamma})"
 

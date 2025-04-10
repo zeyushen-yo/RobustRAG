@@ -83,15 +83,9 @@ for exp in exp_list:
         subset = df[df["gamma"] == gamma]
         
         defense_method = exp.split("-")[2]
-        label_defended = ""
-        if gamma == 1:
-            label_defended += f"{defense_method} unweighted"
-        elif gamma != 1:
-            label_defended += f"{defense_method} weighted"
-
+        label_defended = f"{defense_method}"
         if defense_method in ["sampling", "keyword"]:
             label_defended += f" ($\gamma$={gamma})"
-
         plt.plot(subset["rank"], subset["defended_acc"], marker='x', label=label_defended)
     
         if gamma == 1:
