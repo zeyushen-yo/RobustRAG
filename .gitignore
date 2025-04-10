@@ -15,3 +15,10 @@ log/realtimeqa-gpt-4o-sampling-rep1-top10-attackPIA.log
 log/realtimeqa-llama3b-sampling-rep5-top10-attacknone.log
 log/simpleqa-llama3b-sampling-rep5-top10-attacknone.log
 temp/
+log/realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPoison.log
+log/realtimeqa-llama3b-sampling-3-3-rep5-top10-attackPIA.log
+log/realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPIA.log
+log/realtimeqa-llama3b-sampling-3-3-rep5-top10-attackPoison.log
+log/realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPoison.log
+log/realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPIA.log
+log/realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPIA.log
