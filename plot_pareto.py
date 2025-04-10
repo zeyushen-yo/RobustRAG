@@ -18,15 +18,23 @@ for attack in ["PIA", "Poison", "none"]:
         name = f"{model}-{dataset}-{attack}-attackpos{attack_position}"
         print(f"plotting: {name}")
         keyword_df = pd.read_csv(f"./output/{dataset}-{model}-keyword-0.3-3.0-rep5-top10-attack{attack}.csv")
-        sampling_df = pd.read_csv(f"./output/{dataset}-{model}-sampling-3-5-rep5-top10-attack{attack}.csv")
+        sampling_df33 = pd.read_csv(f"./output/{dataset}-{model}-sampling-3-3-emb-rep5-top10-attack{attack}.csv")
+        sampling_df35 = pd.read_csv(f"./output/{dataset}-{model}-sampling-3-5-emb-rep5-top10-attack{attack}.csv")
+        sampling_df39 = pd.read_csv(f"./output/{dataset}-{model}-sampling-3-9-emb-rep5-top10-attack{attack}.csv")
 
-        # Define data points
+        astuterag_df = pd.read_csv(f"./output/{dataset}-{model}-instructrag_icl-rep5-top10-attack{attack}.csv")
+        instructrag_icl_df = pd.read_csv(f"./output/{dataset}-{model}-instructrag_icl-rep5-top10-attack{attack}.csv")
+        
         data = {
             "keyword weighted ($\gamma=0.8$)": get_defended_metrics(keyword_df, gamma=0.8, rank=attack_position),
             "keyword unweighted ($\gamma=1.0$)": get_defended_metrics(keyword_df, gamma=1.0, rank=attack_position),
-            "sampling weighted ($\gamma=0.8$)": get_defended_metrics(sampling_df, gamma=0.8, rank=attack_position),
-            "sampling weighted ($\gamma=0.5$)": get_defended_metrics(sampling_df, gamma=0.5, rank=attack_position),
-            "sampling unweighted ($\gamma=1.0$)": get_defended_metrics(sampling_df, gamma=1.0, rank=attack_position),
+
+            "sampling weighted ($\gamma=0.8$, T=3, M=5)": get_defended_metrics(sampling_df35, gamma=0.8, rank=attack_position),
+            "sampling unweighted ($\gamma=1.0$, T=3, M=5)": get_defended_metrics(sampling_df35, gamma=1.0, rank=attack_position),
+
+            "astuterag": get_defended_metrics(astuterag_df, gamma=1.0, rank=attack_position),
+            "instructrag_icl": get_defended_metrics(instructrag_icl_df, gamma=1.0, rank=attack_position),
+
             "vanilla": get_undefended_metrics(keyword_df, gamma=1.0, rank=attack_position),
         }
 
@@ -35,8 +43,8 @@ for attack in ["PIA", "Poison", "none"]:
         for label, (acc, asr) in data.items():
             robustness = 1 - asr
             plt.scatter(acc, robustness, label=label, s=100)
-            if attack != "none":
-                plt.text(acc + 0.001, robustness - 0.001, label, fontsize=9, rotation=0)
+            #if attack != "none":
+            #    plt.text(acc + 0.001, robustness - 0.001, label, fontsize=9, rotation=0)
 
         plt.title(name)
         plt.xlabel("Accuracy")

@@ -22,45 +22,53 @@ exp_list = [
     #"realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPIA",
     #"realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPoison",
 
-    "realtimeqa-llama3b-sampling-3-5-rep5-top10-attacknone",
-    "realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPIA",
-    "realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPoison",
+    #"realtimeqa-llama3b-sampling-3-5-rep5-top10-attacknone",
+    #"realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPIA",
+    #"realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPoison",
 
-    "realtimeqa-llama3b-sampling-3-3-rep5-top10-attacknone",
-    "realtimeqa-llama3b-sampling-3-3-rep5-top10-attackPIA",
-    "realtimeqa-llama3b-sampling-3-3-rep5-top10-attackPoison",
+    #"realtimeqa-llama3b-sampling-3-3-rep5-top10-attacknone",
+    #"realtimeqa-llama3b-sampling-3-3-rep5-top10-attackPIA",
+    #"realtimeqa-llama3b-sampling-3-3-rep5-top10-attackPoison",
 
-    "realtimeqa-llama3b-sampling-9-3-rep5-top10-attacknone",
-    "realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPIA",
-    "realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPoison",
+    #"realtimeqa-llama3b-sampling-9-3-rep5-top10-attacknone",
+    #"realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPIA",
+    #"realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPoison",
 
-    "realtimeqa-llama3b-sampling-9-5-rep5-top10-attacknone",
-    "realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPIA",
-    "realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPoison",
+    #"realtimeqa-llama3b-sampling-9-5-rep5-top10-attacknone",
+    #"realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPIA",
+    #"realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPoison",
 
-    "realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attacknone",
-    "realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attackPIA",
-    "realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attackPoison",
+    #"realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attacknone",
+    #"realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attackPIA",
+    #"realtimeqa-llama3b-sampling-3-5-emb-rep5-top10-attackPoison",
 
-    "realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attacknone",
-    "realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attackPIA",
-    "realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attackPoison",
+    #"realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attacknone",
+    #"realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attackPIA",
+    #"realtimeqa-llama3b-sampling-3-7-emb-rep5-top10-attackPoison",
 
-    "realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attacknone",
-    "realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attackPIA",
-    "realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attackPoison",
+    #"realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attacknone",
+    #"realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attackPIA",
+    #"realtimeqa-llama3b-sampling-3-9-emb-rep5-top10-attackPoison",
 
-    "realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attacknone",
-    "realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attackPIA",
-    "realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attackPoison",
+    #"realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attacknone",
+    #"realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attackPIA",
+    #"realtimeqa-llama3b-sampling-3-3-emb-rep5-top10-attackPoison",
 
-    "realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attacknone",
-    "realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attackPIA",
-    "realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attackPoison",
+    #"realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attacknone",
+    #"realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attackPIA",
+    #"realtimeqa-llama3b-sampling-5-3-emb-rep5-top10-attackPoison",
 
-    "realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attacknone",
-    "realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attackPIA",
-    "realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attackPoison",
+    #"realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attacknone",
+    #"realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attackPIA",
+    #"realtimeqa-llama3b-sampling-7-3-emb-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-astuterag-rep5-top10-attacknone",
+    "realtimeqa-llama3b-astuterag-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-astuterag-rep5-top10-attackPoison",
+
+    "realtimeqa-llama3b-instructrag_icl-rep5-top10-attacknone",
+    "realtimeqa-llama3b-instructrag_icl-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-instructrag_icl-rep5-top10-attackPoison",
 ]
 
 plt.rcParams.update({'font.size': 14})
@@ -80,18 +88,15 @@ for exp in exp_list:
     for gamma in df["gamma"].unique():
         subset = df[df["gamma"] == gamma]
         
+        defense_method = exp.split("-")[2]
         label_defended = ""
         if gamma == 1:
-            if "sampling" not in exp:
-                label_defended += "keyword unweighted"
-            else:
-                label_defended += "sampling unweighted"
+            label_defended += f"{defense_method} unweighted"
         elif gamma != 1:
-            if "sampling" not in exp:
-                label_defended += "keyword weighted"
-            else:
-                label_defended += "sampling weighted"
-        label_defended += f" ($\gamma$={gamma})"
+            label_defended += f"{defense_method} weighted"
+
+        if defense_method in ["sampling", "keyword"]:
+            label_defended += f" ($\gamma$={gamma})"
 
         plt.plot(subset["rank"], [1 - asr for asr in subset["defended_asr"]], marker='x', label=label_defended)
         

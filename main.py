@@ -7,6 +7,7 @@ import logging
 from src.dataset_utils import load_data
 from src.models import create_model
 from src.defense import *
+from src.baselines import *
 from src.attack import *
 from src.helper import get_log_name
 import matplotlib.pyplot as plt
@@ -25,7 +26,7 @@ def parse_args():
     parser.add_argument('--attack_method', type=str, default='none',choices=['none','Poison','PIA'], help='The attack method to use (Poison or Prompt Injection)')
 
     # defense
-    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding','greedy', 'sampling'],help='The defense method to use')
+    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding','greedy', 'sampling', 'astuterag', 'instructrag_icl', 'trustrag'],help='The defense method to use')
     parser.add_argument('--alpha', type=float, default=0.3, help='keyword filtering threshold alpha')
     parser.add_argument('--beta', type=float, default=3.0, help='keyword filtering threshold beta')
     parser.add_argument('--eta', type=float, default=0.0, help='decoding confidence threshold eta')
@@ -81,7 +82,7 @@ def main():
         longgen = False
     no_defense = args.defense_method == 'none' or args.top_k<=0 # do not run defense
 
-    if args.defense_method == 'greedy':
+    if args.defense_method in ['greedy', 'astuterag', 'instructrag_icl']:
         gamma_values = [1] # dummy. gamma is not useful in this case
     else:
         gamma_values = [0.5, 0.8, 1.0]
@@ -108,6 +109,10 @@ def main():
                 num_samples=args.T,
                 gamma=gamma,
             )
+        elif args.defense_method == 'instructrag_icl':
+            model = InstructRAG_ICL(llm)
+        elif args.defense_method == 'astuterag':
+            model = AstuteRAG(llm)
 
         no_attack = args.attack_method == 'none' or args.top_k<=0 # do not run attack
 
@@ -156,7 +161,7 @@ def main():
                 
                 if not no_defense: 
                     for _ in range(args.rep):
-                        if args.defense_method == 'greedy':
+                        if args.defense_method in ['greedy']:
                             response_defended,flagg_docs = model.query(data_item)
                             defended_corr = data_tool.eval_response(response_defended,data_item)
                             defended_corr_cnt += defended_corr
@@ -164,7 +169,15 @@ def main():
                                 defended_asr = data_tool.eval_response_asr(response_defended,data_item)
                                 defended_asr_cnt += defended_asr
                             response_list.append({"query":data_item["question"],"defended":response_defended})
-                        else:                      
+                        elif args.defense_method in ['astuterag', 'instructrag_icl']:
+                            response_defended = model.query(data_item)
+                            defended_corr = data_tool.eval_response(response_defended,data_item)
+                            defended_corr_cnt += defended_corr
+                            if not no_attack:
+                                defended_asr = data_tool.eval_response_asr(response_defended,data_item)
+                                defended_asr_cnt += defended_asr
+                            response_list.append({"query":data_item["question"],"defended":response_defended})
+                        else:              
                             response_defended = model.query(data_item, gamma=gamma)
                             defended_corr = data_tool.eval_response(response_defended,data_item)
                             defended_corr_cnt += defended_corr
