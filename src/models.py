@@ -248,16 +248,24 @@ class HFModel(BaseModel):
         result = self.tokenizer.decode(outputs, skip_special_tokens=True)
         result = self._clean_response(result)
         return result
-    
+        
 
     def _batch_query(self, prompt_list):
-        # get a list of text prompts as input and return a list text responses
-        inputs = self.tokenizer(prompt_list, return_tensors="pt", padding=True, truncation=True,).to("cuda")
-        with torch.no_grad():
-            outputs = self.model.generate(**inputs, **self.generation_kwargs)
-        results = self.tokenizer.batch_decode(outputs[:, len(inputs[0]):],skip_special_tokens=True)
-        results = [self._clean_response(x) for x in results]
-        
+        try:
+            inputs = self.tokenizer(
+                prompt_list, return_tensors="pt", padding=True, truncation=True
+            ).to("cuda")
+            with torch.no_grad():
+                outputs = self.model.generate(**inputs, **self.generation_kwargs)
+            results = self.tokenizer.batch_decode(
+                outputs[:, len(inputs[0]):], skip_special_tokens=True
+            )
+            results = [self._clean_response(x) for x in results]
+        except Exception as e:
+            print(e)
+            results = []
+            for prompt in prompt_list:
+                results.append(self._query(prompt))
         return results
 
 

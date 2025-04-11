@@ -8,11 +8,15 @@ def get_log_name(args):
     elif args.defense_method == 'voting': defense_str = f'{args.defense_method}'
     elif args.defense_method == 'keyword': defense_str = f'{args.defense_method}-{args.alpha}-{args.beta}' 
     elif args.defense_method == 'decoding': defense_str = f'{args.defense_method}-{args.eta}' 
+<<<<<<< HEAD
+    elif args.defense_method == 'graph': defense_str = f'{args.defense_method}' 
+=======
     elif args.defense_method == 'greedy': defense_str = f'{args.defense_method}-{args.eta}' 
     elif args.defense_method == 'sampling': defense_str = f'{args.defense_method}-{args.T}-{args.m}-{args.agg}' 
     elif args.defense_method == 'astuterag': defense_str = f'{args.defense_method}'
     elif args.defense_method == 'instructrag_icl': defense_str = f'{args.defense_method}'
     elif args.defense_method == 'trustrag': defense_str = f'{args.defense_method}' 
+>>>>>>> 47b9a7b39a700058e5630150092df4e0e665f29f
     else: defense_str = ""
     return f'{args.dataset_name}-{args.model_name}-{defense_str}-rep{args.rep}-top{args.top_k}-attack{args.attack_method}'
 

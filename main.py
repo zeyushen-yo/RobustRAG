@@ -26,7 +26,7 @@ def parse_args():
     parser.add_argument('--attack_method', type=str, default='none',choices=['none','Poison','PIA'], help='The attack method to use (Poison or Prompt Injection)')
 
     # defense
-    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding','greedy', 'sampling', 'astuterag', 'instructrag_icl', 'trustrag'],help='The defense method to use')
+    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding', 'sampling', 'astuterag', 'instructrag_icl', 'trustrag', 'graph', 'MIS'],help='The defense method to use')
     parser.add_argument('--alpha', type=float, default=0.3, help='keyword filtering threshold alpha')
     parser.add_argument('--beta', type=float, default=3.0, help='keyword filtering threshold beta')
     parser.add_argument('--eta', type=float, default=0.0, help='decoding confidence threshold eta')
@@ -82,7 +82,7 @@ def main():
         longgen = False
     no_defense = args.defense_method == 'none' or args.top_k<=0 # do not run defense
 
-    if args.defense_method in ['greedy', 'astuterag', 'instructrag_icl']:
+    if args.defense_method in ['astuterag', 'instructrag_icl', 'graph', 'MIS']:
         gamma_values = [1] # dummy. gamma is not useful in this case
     else:
         gamma_values = [0.5, 0.8, 1.0]
@@ -99,9 +99,10 @@ def main():
             if args.eta>0 and not longgen:
                 logger.warning(f"using non-zero eta {args.eta} for QA")
             model = WeightedDecodingAgg(llm, args)
-        elif args.defense_method == 'greedy':
-            # TODO: change alpha and beta to CLI
-            model = GreedyRAG(llm, args, uncertain_thres=args.eta, malicious_thres=0.2)
+        elif args.defense_method == 'graph':
+            model = GraphBasedRRAG(llm)
+        elif args.defense_method == 'MIS':
+            model = MISBasedRRAG(llm)
         elif args.defense_method == "sampling":
             model = RandomSamplingReQueryAgg(
                 llm=llm,
@@ -161,8 +162,8 @@ def main():
                 
                 if not no_defense: 
                     for _ in range(args.rep):
-                        if args.defense_method in ['greedy']:
-                            response_defended,flagg_docs = model.query(data_item)
+                        if args.defense_method == "graph" or args.defense_method == "MIS":
+                            response_defended = model.query(data_item)
                             defended_corr = data_tool.eval_response(response_defended,data_item)
                             defended_corr_cnt += defended_corr
                             if not no_attack:
@@ -216,14 +217,14 @@ def main():
     plt.figure(figsize=(10, 6))
     x_values = list(range(1, args.top_k + 1))
     for gamma in gamma_values:
-        if args.defense_method == 'greedy':
+        if args.defense_method == 'graph' or args.defense_method == 'MIS':
             plt.plot(x_values, [1 - y for y in robustness_all[gamma]], marker='o')
         else:
             plt.plot(x_values, [1 - y for y in robustness_all[gamma]], marker='o', label=f'γ = {gamma}')
     
     plt.xlabel("Rank", fontsize=14)
     plt.ylabel("Robustness", fontsize=14)
-    if args.defense_method == 'greedy':
+    if args.defense_method == 'graph' or args.defense_method == 'MIS':
         plt.title("Rank vs Robustness", fontsize=16)
     else:
         plt.title("Rank vs Robustness for Different γ Values", fontsize=16)

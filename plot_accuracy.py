@@ -2,6 +2,46 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 exp_list = [
+<<<<<<< HEAD
+    # "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attacknone",
+    # "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPIA",
+    # "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPoison",
+
+    # "simpleqa-gpt-4o-keyword-0.3-3.0-rep5-top10-attacknone",
+    # "simpleqa-gpt-4o-keyword-0.3-3.0-rep5-top10-attackPIA",
+    # "simpleqa-gpt-4o-keyword-0.3-3.0-rep5-top10-attackPoison",
+
+    # "simpleqa-llama3b-decoding-0.0-rep2-top10-attackPIA",
+    # "simpleqa-llama3b-decoding-0.0-rep2-top10-attackPoison",
+
+    # "simpleqa-llama3b-keyword-0.3-3.0-rep5-top10-attacknone",
+    # "simpleqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPIA",
+    # "simpleqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPoison",
+
+    # "simpleqa-mistral7b-decoding-0.0-rep2-top10-attackPIA",
+    # "simpleqa-mistral7b-decoding-0.0-rep2-top10-attackPoison",
+
+    # "simpleqa-mistral7b-decoding-0.0-rep2-top10-attackPIA",
+    # "simpleqa-mistral7b-decoding-0.0-rep2-top10-attackPoison",
+
+    # "simpleqa-mistral7b-keyword-0.3-3.0-rep5-top10-attacknone",
+    # "simpleqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPIA",
+    # "simpleqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPoison",
+
+    # "realtimeqa-llama3b-graph-rep5-top10-attacknone",
+    # "realtimeqa-llama3b-graph-rep5-top10-attackPIA",
+    # "realtimeqa-llama3b-graph-rep5-top10-attackPoison",
+
+    # "realtimeqa-mistral7b-graph-rep5-top10-attacknone",
+    # "realtimeqa-mistral7b-graph-rep5-top10-attackPIA",
+    # "realtimeqa-mistral7b-graph-rep5-top10-attackPoison",
+
+    # "simpleqa-llama3b-graph-rep2-top10-attacknone",
+    # "simpleqa-llama3b-graph-rep2-top10-attackPIA",
+    # "simpleqa-llama3b-graph-rep2-top10-attackPoison",
+
+    "simpleqa-llama3b--rep2-top10-attackPIA",
+=======
     #"realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attacknone",
     #"realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPIA",
     #"realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPoison",
@@ -65,6 +105,7 @@ exp_list = [
     "realtimeqa-llama3b-instructrag_icl-rep5-top10-attacknone",
     "realtimeqa-llama3b-instructrag_icl-rep5-top10-attackPIA",
     "realtimeqa-llama3b-instructrag_icl-rep5-top10-attackPoison",
+>>>>>>> 47b9a7b39a700058e5630150092df4e0e665f29f
 ]
 
 plt.rcParams.update({'font.size': 14})
@@ -82,10 +123,15 @@ for exp in exp_list:
     for gamma in df["gamma"].unique():
         subset = df[df["gamma"] == gamma]
         
+<<<<<<< HEAD
+        # label_defended = f"Gamma {gamma} (new)" if gamma != 1 else f"Gamma {gamma} (RobustRAG)"
+        label_defended = "MIS"
+=======
         defense_method = exp.split("-")[2]
         label_defended = f"{defense_method}"
         if defense_method in ["sampling", "keyword"]:
             label_defended += f" ($\gamma$={gamma})"
+>>>>>>> 47b9a7b39a700058e5630150092df4e0e665f29f
         plt.plot(subset["rank"], subset["defended_acc"], marker='x', label=label_defended)
     
         if gamma == 1:

@@ -2,13 +2,23 @@ import pandas as pd
 import re
 
 exp_list = [
-    "realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attacknone",
-    "realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPIA",
-    "realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPoison",
+    # "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attacknone",
+    # "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPIA",
+    # "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPoison",
 
-    "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attacknone",
-    "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPIA",
-    "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPoison",
+    # "simpleqa-gpt-4o-keyword-0.3-3.0-rep5-top10-attacknone",
+    # "simpleqa-gpt-4o-keyword-0.3-3.0-rep5-top10-attackPIA",
+    # "simpleqa-gpt-4o-keyword-0.3-3.0-rep5-top10-attackPoison",
+
+    # "simpleqa-llama3b-decoding-0.0-rep2-top10-attackPIA",
+    # "simpleqa-llama3b-decoding-0.0-rep2-top10-attackPoison",
+
+    # "simpleqa-llama3b-keyword-0.3-3.0-rep5-top10-attacknone",
+    # "simpleqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPIA",
+    # "simpleqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPoison",
+
+    # "simpleqa-mistral7b-decoding-0.0-rep2-top10-attackPIA",
+    # "simpleqa-mistral7b-decoding-0.0-rep2-top10-attackPoison",
 
     "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attacknone",
     "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPIA",
@@ -69,8 +79,8 @@ exp_list = [
 
 for exp in exp_list:
     print(f"Processing {exp}")
-    total_samples = 100
-    rep = 2 if "gpt" in exp else 5
+    total_samples = 100 if "realtimeqa" in exp else 500
+    rep = 5 if "realtimeqa" in exp else 2
     total_cnt = total_samples * rep
 
     file_name = f"./log/{exp}.log"
