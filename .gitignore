@@ -22,3 +22,7 @@ log/realtimeqa-llama3b-sampling-3-3-rep5-top10-attackPoison.log
 log/realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPoison.log
 log/realtimeqa-llama3b-sampling-9-5-rep5-top10-attackPIA.log
 log/realtimeqa-llama3b-sampling-9-3-rep5-top10-attackPIA.log
+log/
+figs_accuracy/
+figs_robustness/
+figs_pareto/
