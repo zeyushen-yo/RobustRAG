@@ -7,7 +7,7 @@ class InstructRAG_ICL(RRAG):
     """
         InstructRAG-ICL
         Source: https://github.com/HuichiZhou/TrustRAG/blob/main/defend_module.py
-        todo: sampling_params for non-gpt models
+        todo: sampling_params
     """
     def __init__(
         self, 
@@ -20,7 +20,7 @@ class InstructRAG_ICL(RRAG):
         top_k = data_item["topk_content"]
         document_list = ""
         for index, doc in enumerate(top_k):
-            document_list += f"Externally Retrieved Document{index}:" + doc + "\n"
+            document_list += f"Document[{index}]: " + doc + "\n"
 
         icl_prompt = f"""
             Your task is to analyze the provided documents and answer the given question. Please generate a brief explanation of how the contents of these documents lead to your answer. If the provided information is not helpful to answer the question, you only need to respond based on your own knowledge, without referring to the documents.
@@ -72,10 +72,18 @@ class InstructRAG_ICL(RRAG):
             In conclusion, the process in which the value of ∆u = 0 is an isothermal process, as it is the only process where the temperature remains constant, and the change in internal energy (ΔU) is equal to the change in Gibbs free energy (ΔG).
             
             ###
-            Now it is your turn to analyze the following documents and based on your knowledge and the provided information {document_list}, answer the question with a short and precise response: {question}
-            """
 
+            Now it is your turn to analyze the following documents and answer the given question.
+
+            {document_list}
+
+            Based on your knowledge and the provided information, answer the question: {question}
+            """
         response = self.llm.query(icl_prompt)
+
+        logger.debug(f'Query_prompt:\n{icl_prompt}')
+        logger.debug(f'Response:\n{response}')
+        logger.debug(f'Answer:\n{data_item["answer"]}')
         return response
 
 
@@ -83,7 +91,8 @@ class AstuteRAG(RRAG):
     """
         AstuteRAG
         Source: https://github.com/HuichiZhou/TrustRAG/blob/main/defend_module.py
-        todo: sampling_params for non-gpt models
+        todo: sampling_params
+        todo: t>1 not implemented yet (iterative consolidation)
     """
     def __init__(
         self, 
@@ -96,7 +105,7 @@ class AstuteRAG(RRAG):
         top_k = data_item["topk_content"]
         document_list = ""
         for index, doc in enumerate(top_k):
-            document_list += f"Externally Retrieved Document{index}:" + doc + "\n"
+            document_list += f"Externally Retrieved Document[{index}]: " + doc + "\n"
 
         stage_one_prompt = f"""Generate a document that provides accurate and relevant information to answer the given question. If the information is unclear or uncertain, explicitly state 'I don't know' to avoid any hallucinations.
         Question: {question} 
@@ -104,7 +113,7 @@ class AstuteRAG(RRAG):
 
         internal_knowledge = self.llm.query(stage_one_prompt)
 
-        document_list = document_list + "\n" + f"Memorized Document:" + internal_knowledge + "\n"
+        document_list = document_list + "\n" + f"Memorized Document: " + internal_knowledge + "\n"
 
         final_prompt = f"""Task: Answer a given question using the consolidated information from both your own
         memorized documents and externally retrieved documents.
@@ -121,13 +130,14 @@ class AstuteRAG(RRAG):
         After evaluating all groups, select the most accurate and well-supported answer. Highlight your exact answer within <ANSWER> your answer </ANSWER>.
         Initial Context: {document_list}
         Question: {question}
-        Dont output the step infomration and only output a short and concise answer.
         Answer:
         """
-
         response = self.llm.query(final_prompt)
+        logger.debug(f'Stage one prompt:\n{stage_one_prompt}')
+        logger.debug(f'Query_prompt:\n{final_prompt}')
+        logger.debug(f'Response:\n{response}')
+        logger.debug(f'Answer:\n{data_item["answer"]}')
         return response
-
 
 class TrustRAG(RRAG):
     def __init__(
