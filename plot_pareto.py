@@ -22,7 +22,7 @@ for attack in ["PIA", "Poison", "none"]:
         sampling_df35 = pd.read_csv(f"./output/{dataset}-{model}-sampling-3-5-emb-rep5-top10-attack{attack}.csv")
         sampling_df39 = pd.read_csv(f"./output/{dataset}-{model}-sampling-3-9-emb-rep5-top10-attack{attack}.csv")
 
-        astuterag_df = pd.read_csv(f"./output/{dataset}-{model}-instructrag_icl-rep5-top10-attack{attack}.csv")
+        astuterag_df = pd.read_csv(f"./output/{dataset}-{model}-astuterag-rep5-top10-attack{attack}.csv")
         instructrag_icl_df = pd.read_csv(f"./output/{dataset}-{model}-instructrag_icl-rep5-top10-attack{attack}.csv")
         
         data = {

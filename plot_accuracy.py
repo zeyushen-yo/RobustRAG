@@ -2,21 +2,21 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 exp_list = [
-    #"realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attacknone",
-    #"realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPIA",
-    #"realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPoison",
+    "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attacknone",
+    "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPIA",
+    "realtimeqa-mistral7b-keyword-0.3-3.0-rep5-top10-attackPoison",
 
-    #"realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attacknone",
+    "realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-keyword-0.3-3.0-rep5-top10-attackPoison",
 
-    #"realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attacknone",
-    #"realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPIA",
-    #"realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPoison",
+    "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attacknone",
+    "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPIA",
+    "realtimeqa-gpt-4o-keyword-0.3-3.0-rep2-top10-attackPoison",
 
-    #"realtimeqa-llama3b-sampling-rep5-top10-attacknone",
-    #"realtimeqa-llama3b-sampling-rep5-top10-attackPIA",
-    #"realtimeqa-llama3b-sampling-rep5-top10-attackPoison",
+    "realtimeqa-llama3b-sampling-rep5-top10-attacknone",
+    "realtimeqa-llama3b-sampling-rep5-top10-attackPIA",
+    "realtimeqa-llama3b-sampling-rep5-top10-attackPoison",
 
     "realtimeqa-llama3b-sampling-3-5-rep5-top10-attacknone",
     "realtimeqa-llama3b-sampling-3-5-rep5-top10-attackPIA",
@@ -67,9 +67,27 @@ exp_list = [
     "realtimeqa-llama3b-instructrag_icl-rep5-top10-attackPoison",
 ]
 
+new_exp_list = [
+    "open_nq-llama3b-astuterag-rep5-top10-attacknone",
+    "open_nq-llama3b-astuterag-rep5-top10-attackPIA",
+    "open_nq-llama3b-astuterag-rep5-top10-attackPoison",
+
+    "open_nq-llama3b-instructrag_icl-rep5-top10-attacknone",
+    "open_nq-llama3b-instructrag_icl-rep5-top10-attackPIA",
+    "open_nq-llama3b-instructrag_icl-rep5-top10-attackPoison",
+
+    "open_nq-mistral7b-astuterag-rep5-top10-attacknone",
+    #"open_nq-mistral7b-astuterag-rep5-top10-attackPIA",
+    "open_nq-mistral7b-astuterag-rep5-top10-attackPoison",
+
+    "open_nq-mistral7b-instructrag_icl-rep5-top10-attacknone",
+    "open_nq-mistral7b-instructrag_icl-rep5-top10-attackPIA",
+    "open_nq-mistral7b-instructrag_icl-rep5-top10-attackPoison",
+]
+
 plt.rcParams.update({'font.size': 14})
 
-for exp in exp_list:
+for exp in new_exp_list:
     print(f"Plotting {exp}")
     
     in_file = f"./output/{exp}.csv"

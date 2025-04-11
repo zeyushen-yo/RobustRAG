@@ -67,9 +67,34 @@ exp_list = [
     "realtimeqa-llama3b-instructrag_icl-rep5-top10-attackPoison",
 ]
 
-for exp in exp_list:
+new_exp_list = [
+    "open_nq-llama3b-astuterag-rep5-top10-attacknone",
+    "open_nq-llama3b-astuterag-rep5-top10-attackPIA",
+    "open_nq-llama3b-astuterag-rep5-top10-attackPoison",
+
+    "open_nq-llama3b-instructrag_icl-rep5-top10-attacknone",
+    "open_nq-llama3b-instructrag_icl-rep5-top10-attackPIA",
+    "open_nq-llama3b-instructrag_icl-rep5-top10-attackPoison",
+
+    "open_nq-mistral7b-astuterag-rep5-top10-attacknone",
+    #"open_nq-mistral7b-astuterag-rep5-top10-attackPIA",
+    "open_nq-mistral7b-astuterag-rep5-top10-attackPoison",
+
+    "open_nq-mistral7b-instructrag_icl-rep5-top10-attacknone",
+    "open_nq-mistral7b-instructrag_icl-rep5-top10-attackPIA",
+    "open_nq-mistral7b-instructrag_icl-rep5-top10-attackPoison",
+]
+
+dataset_size = {
+    "open_nq": 500,
+    "realtimeqa": 100,
+}
+
+for exp in new_exp_list:
     print(f"Processing {exp}")
-    total_samples = 100
+    dataset = exp.split("-")[0]
+    total_samples = dataset_size[dataset]
+
     rep = 2 if "gpt" in exp else 5
     total_cnt = total_samples * rep
 

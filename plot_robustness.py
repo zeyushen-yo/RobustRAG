@@ -71,9 +71,27 @@ exp_list = [
     "realtimeqa-llama3b-instructrag_icl-rep5-top10-attackPoison",
 ]
 
+new_exp_list = [
+    "open_nq-llama3b-astuterag-rep5-top10-attacknone",
+    "open_nq-llama3b-astuterag-rep5-top10-attackPIA",
+    "open_nq-llama3b-astuterag-rep5-top10-attackPoison",
+
+    "open_nq-llama3b-instructrag_icl-rep5-top10-attacknone",
+    "open_nq-llama3b-instructrag_icl-rep5-top10-attackPIA",
+    "open_nq-llama3b-instructrag_icl-rep5-top10-attackPoison",
+
+    "open_nq-mistral7b-astuterag-rep5-top10-attacknone",
+    #"open_nq-mistral7b-astuterag-rep5-top10-attackPIA",
+    "open_nq-mistral7b-astuterag-rep5-top10-attackPoison",
+
+    "open_nq-mistral7b-instructrag_icl-rep5-top10-attacknone",
+    "open_nq-mistral7b-instructrag_icl-rep5-top10-attackPIA",
+    "open_nq-mistral7b-instructrag_icl-rep5-top10-attackPoison",
+]
+
 plt.rcParams.update({'font.size': 14})
 
-for exp in exp_list:
+for exp in new_exp_list:
     if "attacknone" in exp:
         continue
     print(f"Plotting {exp}")
