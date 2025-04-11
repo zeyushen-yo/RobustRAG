@@ -11,6 +11,7 @@ from src.baselines import *
 from src.attack import *
 from src.helper import get_log_name
 import matplotlib.pyplot as plt
+import pandas as pd
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Robust RAG')
@@ -87,8 +88,7 @@ def main():
     else:
         gamma_values = [0.5, 0.8, 1.0]
 
-    robustness_all = {gamma: [] for gamma in gamma_values}
-
+    results_all = []
     for gamma in gamma_values:
         if args.defense_method == 'voting': # weighted majority voting
             assert 'mc' in args.dataset_name
@@ -137,15 +137,15 @@ def main():
             undefended_asr_cnt = 0
             defended_asr_cnt = 0
             response_list = []
-            for data_item in tqdm(data_tool.data):
-
+            for data_idx, data_item in enumerate(tqdm(data_tool.data[:2])):
                 data_item = data_tool.process_data_item(data_item)
                 if not no_attack:
                     data_item = attacker.attack(data_item)
                 
                 # undefended
                 if not args.no_vanilla:
-                    for _ in range(args.rep):
+                    for rep_idx in range(args.rep):
+                        logger.info(f'==== attackpos: {i}, item: {data_idx}, vanilla rep: {rep_idx}')
                         response_undefended = model.query_undefended(data_item)
                         undefended_corr = data_tool.eval_response(response_undefended,data_item)
                         undefended_corr_cnt += undefended_corr
@@ -160,31 +160,20 @@ def main():
                 response_list.append({"query":data_item["question"], "undefended":response_undefended})
                 
                 if not no_defense: 
-                    for _ in range(args.rep):
+                    for rep_idx in range(args.rep):
+                        logger.info(f'==== attackpos: {i}, item: {data_idx}, defended rep: {rep_idx}')
                         if args.defense_method in ['greedy']:
                             response_defended,flagg_docs = model.query(data_item)
-                            defended_corr = data_tool.eval_response(response_defended,data_item)
-                            defended_corr_cnt += defended_corr
-                            if not no_attack:
-                                defended_asr = data_tool.eval_response_asr(response_defended,data_item)
-                                defended_asr_cnt += defended_asr
-                            response_list.append({"query":data_item["question"],"defended":response_defended})
                         elif args.defense_method in ['astuterag', 'instructrag_icl']:
                             response_defended = model.query(data_item)
-                            defended_corr = data_tool.eval_response(response_defended,data_item)
-                            defended_corr_cnt += defended_corr
-                            if not no_attack:
-                                defended_asr = data_tool.eval_response_asr(response_defended,data_item)
-                                defended_asr_cnt += defended_asr
-                            response_list.append({"query":data_item["question"],"defended":response_defended})
                         else:              
                             response_defended = model.query(data_item, gamma=gamma)
-                            defended_corr = data_tool.eval_response(response_defended,data_item)
-                            defended_corr_cnt += defended_corr
-                            if not no_attack:
-                                defended_asr = data_tool.eval_response_asr(response_defended,data_item)
-                                defended_asr_cnt += defended_asr
-                            response_list.append({"query":data_item["question"],"defended":response_defended})
+                        defended_corr = data_tool.eval_response(response_defended,data_item)
+                        defended_corr_cnt += defended_corr
+                        if not no_attack:
+                            defended_asr = data_tool.eval_response_asr(response_defended,data_item)
+                            defended_asr_cnt += defended_asr
+                        response_list.append({"query":data_item["question"],"defended":response_defended})
 
             logger.info(f'Params: Gamma: {gamma}, rank: {i}')
             logger.info(f'undefended_corr_cnt: {undefended_corr_cnt}')
@@ -209,32 +198,18 @@ def main():
 
             if args.use_cache:
                 llm.dump_cache()
-            
-            robustness_value = defended_asr_cnt / (len(data_tool.data) * args.rep)
-            robustness_all[gamma].append(robustness_value)
 
-    plt.figure(figsize=(10, 6))
-    x_values = list(range(1, args.top_k + 1))
-    for gamma in gamma_values:
-        if args.defense_method == 'greedy':
-            plt.plot(x_values, [1 - y for y in robustness_all[gamma]], marker='o')
-        else:
-            plt.plot(x_values, [1 - y for y in robustness_all[gamma]], marker='o', label=f'γ = {gamma}')
+            results_all.append({
+                "gamma": gamma,
+                "rank": i,
+                "undefended_acc": undefended_corr_cnt / (len(data_tool.data) * args.rep),
+                "defended_acc": defended_corr_cnt / (len(data_tool.data) * args.rep),
+                "undefended_asr": undefended_asr_cnt / len(data_tool.data),
+                "defended_asr": defended_asr_cnt / (len(data_tool.data) * args.rep),
+            })
     
-    plt.xlabel("Rank", fontsize=14)
-    plt.ylabel("Robustness", fontsize=14)
-    if args.defense_method == 'greedy':
-        plt.title("Rank vs Robustness", fontsize=16)
-    else:
-        plt.title("Rank vs Robustness for Different γ Values", fontsize=16)
-    max_y = max(max(robustness_all[gamma]) for gamma in gamma_values)
-    plt.ylim(1 - max_y * 1.1, 1)
-    plt.legend(fontsize=12)
-    plt.grid(True, linestyle='--', alpha=0.7)
-    plt.tight_layout()
-    
-    plt.savefig(f"figs/{LOG_NAME}.png", dpi=300)
-    plt.show()
+    df = pd.DataFrame(results_all)
+    df.to_csv(f"./output/{LOG_NAME}.csv", index=False)
 
 if __name__ == '__main__':
     main()
