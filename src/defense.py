@@ -2,7 +2,7 @@ import logging
 
 from collections import Counter,defaultdict
 
-from transformers import StoppingCriteriaList, MaxLengthCriteria
+from transformers import StoppingCriteriaList, MaxLengthCriteria, AutoTokenizer, AutoModelForSequenceClassification
 from nltk.corpus import stopwords
 punctuation = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
 stopword_set = set(stopwords.words('english'))
@@ -24,8 +24,11 @@ import spacy
 import os
 import json
 import random
+from transformers import pipeline
+from itertools import chain, combinations
+import math
 
-from src.decoding_methods import secure_decoding, greedy_rag_decoding
+from src.decoding_methods import secure_decoding
 
 logger = logging.getLogger('RRAG-main')
 
@@ -67,6 +70,204 @@ class RRAG:
             if clean_str(ans) in response:
                 return True 
         return False
+
+
+class GraphBasedRRAG(RRAG):
+
+    def __init__(self,llm):
+        self.llm = llm
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # device = "cpu" # for gpt-4o
+        self.nli_tokenizer = AutoTokenizer.from_pretrained("/scratch/gpfs/zs7353/DeBERTa-v3-large-mnli-fever-anli-ling-wanli")
+        self.nli_model = AutoModelForSequenceClassification.from_pretrained("/scratch/gpfs/zs7353/DeBERTa-v3-large-mnli-fever-anli-ling-wanli").to(device)
+
+    def query(self, data_item):
+        docs = data_item['topk_content']
+        seperate_responses = self.llm.batch_query(self.llm.wrap_prompt(data_item,as_multi_choice=False,seperate=True))
+        k = len(docs)
+        # Build pairwise prompts to check for contradictory information
+        prompts = []
+        out_edges = {i: set() for i in range(k)}
+        in_edges = {i: set() for i in range(k)}
+
+        premises = []
+        hypotheses = []
+        pair_indices = []
+
+        for i in range(k):
+            for j in range(i + 1, k):
+                premise = f"The answer to the question: {data_item['question']}\nis {seperate_responses[i]}."
+                hypothesis = f"The answer to the question: {data_item['question']}\nis {seperate_responses[j]}."
+                premises.append(premise)
+                hypotheses.append(hypothesis)
+                pair_indices.append((i, j))
+
+        if premises:
+            inputs = self.nli_tokenizer(premises, hypotheses, return_tensors='pt', truncation=True, padding=True)
+            inputs = {key: value.to(self.nli_model.device) for key, value in inputs.items()}
+
+            # Run the model on the batch
+            with torch.no_grad():
+                outputs = self.nli_model(**inputs)
+            probs = torch.softmax(outputs.logits, dim=1)
+
+            # Process each batch item and update edges based on contradiction probability
+            for idx, (i, j) in enumerate(pair_indices):
+                contradiction_probability = probs[idx][2].item()
+                if contradiction_probability >= 0.5 and "I don't know" not in seperate_responses[i] and "I don't know" not in seperate_responses[j]:
+                    out_edges[i].add(j)
+                    in_edges[j].add(i)
+        
+        # Iteratively remove vertices with out-degree greater than (number of remaining vertices)/2
+        # remaining = set(range(k))
+        remaining = set()
+        # just don't take irrelevant docs? They are just noisy and useless
+        for i in range(k):
+            if "I don't know" not in seperate_responses[i]:
+                remaining.add(i)
+        
+        removal_occurred = True
+        while removal_occurred:
+            removal_occurred = False
+            current_remaining = list(remaining)
+            n_remaining = len(remaining)
+            to_remove = []
+            for v in current_remaining:
+                current_out_degree = len(out_edges[v].intersection(remaining))
+                if current_out_degree > math.floor(n_remaining / 2):
+                    to_remove.append(v)
+            if to_remove:
+                removal_occurred = True
+                for v in to_remove:
+                    remaining.discard(v)
+        
+        # From the remaining documents, select those with in-degree 0
+        selected = []
+        for v in remaining:
+            current_in_degree = len(in_edges[v].intersection(remaining))
+            if current_in_degree == 0:
+                selected.append(v)
+        
+        logger.info(selected)
+        # Fallback: if no document has in-degree 0, use all remaining documents
+        if not selected:
+            selected = list(remaining)
+        
+        # Sort selected documents by their original rank order
+        selected.sort()
+        
+        # Update the data_item to include only the selected documents
+        new_data_item = data_item.copy()
+        new_data_item['topk_content'] = [docs[i] for i in selected]
+        
+        # Create the final prompt using the LLM's wrap_prompt method
+        ultimate_prompt = self.llm.wrap_prompt(new_data_item, as_multi_choice=False, seperate=False)
+        
+        # Return the final answer by querying the LLM
+        final_answer = self.llm._query(ultimate_prompt)
+        print("final_answer: ", final_answer)
+        return final_answer
+
+
+
+class MISBasedRRAG(RRAG):
+
+    def __init__(self, llm):
+        self.llm = llm
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        # device = "cpu"  # for gpt-4o
+        self.nli_tokenizer = AutoTokenizer.from_pretrained("/scratch/gpfs/zs7353/DeBERTa-v3-large-mnli-fever-anli-ling-wanli")
+        self.nli_model = AutoModelForSequenceClassification.from_pretrained("/scratch/gpfs/zs7353/DeBERTa-v3-large-mnli-fever-anli-ling-wanli").to(device)
+
+    def query(self, data_item):
+        # Retrieve the documents and get separate responses.
+        docs = data_item['topk_content']
+        seperate_responses = self.llm.batch_query(self.llm.wrap_prompt(data_item, as_multi_choice=False, seperate=True))
+        k = len(docs)
+        
+        # Build an undirected graph: graph[i] holds all vertices j that contradict with document i.
+        graph = {i: set() for i in range(k)}
+        premises = []
+        hypotheses = []
+        pair_indices = []
+
+        for i in range(k):
+            for j in range(i + 1, k):
+                premise = f"The answer to the question: {data_item['question']}\nis {seperate_responses[i]}."
+                hypothesis = f"The answer to the question: {data_item['question']}\nis {seperate_responses[j]}."
+                premises.append(premise)
+                hypotheses.append(hypothesis)
+                pair_indices.append((i, j))
+        
+        if premises:
+            inputs = self.nli_tokenizer(premises, hypotheses, return_tensors='pt', truncation=True, padding=True)
+            inputs = {key: value.to(self.nli_model.device) for key, value in inputs.items()}
+            with torch.no_grad():
+                outputs = self.nli_model(**inputs)
+            probs = torch.softmax(outputs.logits, dim=1)
+            
+            # For each pair, add an undirected edge if the answers contradict.
+            for idx, (i, j) in enumerate(pair_indices):
+                contradiction_probability = probs[idx][2].item()
+                if (contradiction_probability >= 0.5 and "I don't know" not in seperate_responses[i] and "I don't know" not in seperate_responses[j]):
+                    graph[i].add(j)
+                    graph[j].add(i)
+        
+        z = {i for i in range(k) if "I don't know" not in seperate_responses[i]}
+        
+        # Compute the maximum independent set over the vertices.
+        # Among all maximum independent sets, choose the one with the lexicographically smallest order.
+        best_set = self._max_independent_set(graph, z)
+        
+        # Fallback: if best_set is empty, use all z documents.
+        if not best_set:
+            best_set = list(z)
+            if not best_set:
+                best_set = [i for i in range(k)]
+        else:
+            best_set = list(best_set)
+
+        best_set.sort()  # sort in ascending order (better ranked docs have lower indices)
+        logger.info(f"Selected document indices: {best_set}")
+        
+        # Update data_item with only the selected documents.
+        new_data_item = data_item.copy()
+        new_data_item['topk_content'] = [docs[i] for i in best_set]
+        
+        # Create the final prompt and query for the ultimate answer.
+        ultimate_prompt = self.llm.wrap_prompt(new_data_item, as_multi_choice=False, seperate=False)
+        final_answer = self.llm._query(ultimate_prompt)
+        print("final_answer:", final_answer)
+        return final_answer
+
+    def _max_independent_set(self, graph, vertices):
+        best_size = 0
+        best_sets = []
+        vertices_list = list(vertices)
+        
+        # Generate all subsets of vertices_list
+        for subset in chain.from_iterable(combinations(vertices_list, r) for r in range(len(vertices_list) + 1)):
+            subset = set(subset)
+            if self._is_independent(subset, graph):
+                subset_size = len(subset)
+                if subset_size > best_size:
+                    best_size = subset_size
+                    best_sets = [tuple(sorted(subset))]
+                elif subset_size == best_size:
+                    best_sets.append(tuple(sorted(subset)))
+                    
+        # Return the lexicographically smallest independent set (as a tuple).
+        if best_sets:
+            return min(best_sets)
+        else:
+            return set()
+
+    def _is_independent(self, subset, graph):
+        for v in subset:
+            for u in subset:
+                if u != v and u in graph[v]:
+                    return False
+        return True
 
 
 class WeightedMajorityVoting(RRAG):
@@ -298,6 +499,9 @@ class WeightedDecodingAgg(RRAG):
                                                            gamma=gamma)
 
         generated_output_text = self.llm.tokenizer.decode(generated_outputs, skip_special_tokens=True)
+<<<<<<< HEAD
+        return generated_output_text
+=======
         return generated_output_text
 
 
@@ -464,3 +668,4 @@ class RandomSamplingReQueryAgg(RRAG):
             '''What is the most accurate and supported answer to the question supported by the majority of the responses? The answer should be as short as possible and can only use words found in the context information.\n\n'''
             f"{response_text}\n\nQuestion: {question}\nAnswer:"
         )
+>>>>>>> 47b9a7b39a700058e5630150092df4e0e665f29f

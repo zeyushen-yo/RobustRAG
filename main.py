@@ -27,7 +27,7 @@ def parse_args():
     parser.add_argument('--attack_method', type=str, default='none',choices=['none','Poison','PIA'], help='The attack method to use (Poison or Prompt Injection)')
 
     # defense
-    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding','greedy', 'sampling', 'astuterag', 'instructrag_icl', 'trustrag'],help='The defense method to use')
+    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding', 'sampling', 'astuterag', 'instructrag_icl', 'trustrag', 'graph', 'MIS'],help='The defense method to use')
     parser.add_argument('--alpha', type=float, default=0.3, help='keyword filtering threshold alpha')
     parser.add_argument('--beta', type=float, default=3.0, help='keyword filtering threshold beta')
     parser.add_argument('--eta', type=float, default=0.0, help='decoding confidence threshold eta')
@@ -83,7 +83,7 @@ def main():
         longgen = False
     no_defense = args.defense_method == 'none' or args.top_k<=0 # do not run defense
 
-    if args.defense_method in ['greedy', 'astuterag', 'instructrag_icl']:
+    if args.defense_method in ['astuterag', 'instructrag_icl', 'graph', 'MIS']:
         gamma_values = [1] # dummy. gamma is not useful in this case
     else:
         gamma_values = [0.5, 0.8, 1.0]
@@ -99,9 +99,10 @@ def main():
             if args.eta>0 and not longgen:
                 logger.warning(f"using non-zero eta {args.eta} for QA")
             model = WeightedDecodingAgg(llm, args)
-        elif args.defense_method == 'greedy':
-            # TODO: change alpha and beta to CLI
-            model = GreedyRAG(llm, args, uncertain_thres=args.eta, malicious_thres=0.2)
+        elif args.defense_method == 'graph':
+            model = GraphBasedRRAG(llm)
+        elif args.defense_method == 'MIS':
+            model = MISBasedRRAG(llm)
         elif args.defense_method == "sampling":
             model = RandomSamplingReQueryAgg(
                 llm=llm,
@@ -159,10 +160,10 @@ def main():
                 
                 response_list.append({"query":data_item["question"], "undefended":response_undefended})
                 
-                if not no_defense: 
+                if not no_defense:
                     for rep_idx in range(args.rep):
                         logger.info(f'==== attackpos: {i}, item: {data_idx}, defended rep: {rep_idx}')
-                        if args.defense_method in ['greedy']:
+                        if args.defense_method == "graph" or args.defense_method == "MIS":
                             response_defended,flagg_docs = model.query(data_item)
                         elif args.defense_method in ['astuterag', 'instructrag_icl']:
                             response_defended = model.query(data_item)
@@ -199,6 +200,7 @@ def main():
             if args.use_cache:
                 llm.dump_cache()
 
+
             results_all.append({
                 "gamma": gamma,
                 "rank": i,
@@ -210,6 +212,7 @@ def main():
     
     df = pd.DataFrame(results_all)
     df.to_csv(f"./output/{LOG_NAME}.csv", index=False)
+
 
 if __name__ == '__main__':
     main()

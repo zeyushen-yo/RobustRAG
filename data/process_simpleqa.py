@@ -25,9 +25,9 @@ def call_gpt(prompt, model="gpt-4", temperature=0.7, max_tokens=1024):
         return ""
 
 
-def get_formatted_expanded_answer(correct_answer):
+def get_formatted_expanded_answer(correct_answer, question):
     prompt_expanded = (
-        f"Given the answer '{correct_answer}', generate exactly two alternative ways of expressing the same answer that are factually correct and convey the same meaning. "
+        f"Given the answer '{correct_answer}' to the question '{question}', generate exactly two alternative ways of expressing the same answer that are factually correct and convey the same meaning. "
         "Format your answer exactly as follows on separate lines:\n"
         "<expanded_answer_1>Your first alternative answer here</expanded_answer_1>\n"
         "<expanded_answer_2>Your second alternative answer here</expanded_answer_2>\n"
@@ -48,9 +48,9 @@ def get_formatted_expanded_answer(correct_answer):
         print("Formatted expanded answer not received. Reprompting...")
 
 
-def get_formatted_incorrect_answer(correct_answer):
+def get_formatted_incorrect_answer(correct_answer, question):
     prompt_incorrect = (
-        f"Generate an incorrect answer that is similar to but different from the correct answer '{correct_answer}' for a multiple choice question. "
+        f"Generate an incorrect answer that answers the question '{question}' and is related to but different from the correct answer '{correct_answer}'."
         "Format your answer exactly as follows on a single line:\n"
         "<incorrect_answer>Your incorrect answer here</incorrect_answer>\n"
         "Do not include any additional text."
@@ -65,9 +65,9 @@ def get_formatted_incorrect_answer(correct_answer):
         print("Formatted incorrect answer not received. Reprompting...")
 
 
-def get_formatted_incorrect_context(incorrect_answer):
+def get_formatted_incorrect_context(incorrect_answer, question):
     prompt_incorrect_context = (
-        f"Generate exactly 5 plausible but factually incorrect context passages that support the incorrect answer '{incorrect_answer}'. "
+        f"Generate exactly 5 plausible but factually incorrect context passages that support the incorrect answer '{incorrect_answer}' to the question '{question}'. "
         "Format your answer exactly as follows on separate lines:\n"
         "<incorrect_context_1>Your first context snippet here</incorrect_context_1>\n"
         "<incorrect_context_2>Your second context snippet here</incorrect_context_2>\n"
@@ -112,13 +112,13 @@ def process_csv(input_csv):
         correct_answer = row.get("answer", "").strip()
         
         # Get strictly formatted expanded answers
-        expanded_answer = get_formatted_expanded_answer(correct_answer)
+        expanded_answer = get_formatted_expanded_answer(correct_answer, question)
         
         # Get strictly formatted incorrect answer
-        incorrect_answer = get_formatted_incorrect_answer(correct_answer)
+        incorrect_answer = get_formatted_incorrect_answer(correct_answer, question)
         
         # Get strictly formatted incorrect context passages
-        incorrect_context = get_formatted_incorrect_context(incorrect_answer)
+        incorrect_context = get_formatted_incorrect_context(incorrect_answer, question)
         
         item = {
             "id": i,
