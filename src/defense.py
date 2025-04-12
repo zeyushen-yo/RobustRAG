@@ -193,8 +193,10 @@ class MISBasedRRAG(RRAG):
 
         for i in range(k):
             for j in range(i + 1, k):
-                premise = f"The answer to the question: {data_item['question']}\nis {seperate_responses[i]}."
-                hypothesis = f"The answer to the question: {data_item['question']}\nis {seperate_responses[j]}."
+                # premise = f"The answer to the question: {data_item['question']}\nis {seperate_responses[i]}."
+                # hypothesis = f"The answer to the question: {data_item['question']}\nis {seperate_responses[j]}."
+                premise = f"{docs[i]} provide answer to the question: {data_item['question']}."
+                hypothesis = f"{docs[j]} provide answer to the question: {data_item['question']}."             
                 premises.append(premise)
                 hypotheses.append(hypothesis)
                 pair_indices.append((i, j))
@@ -209,6 +211,7 @@ class MISBasedRRAG(RRAG):
             # For each pair, add an undirected edge if the answers contradict.
             for idx, (i, j) in enumerate(pair_indices):
                 contradiction_probability = probs[idx][2].item()
+                print(i, j, contradiction_probability)
                 if (contradiction_probability >= 0.5 and "I don't know" not in seperate_responses[i] and "I don't know" not in seperate_responses[j]):
                     graph[i].add(j)
                     graph[j].add(i)
@@ -499,53 +502,7 @@ class WeightedDecodingAgg(RRAG):
                                                            gamma=gamma)
 
         generated_output_text = self.llm.tokenizer.decode(generated_outputs, skip_special_tokens=True)
-<<<<<<< HEAD
         return generated_output_text
-=======
-        return generated_output_text
-
-
-class GreedyRAG(RRAG):
-    def __init__(self, llm, tokenizer, uncertain_thres=0.1, malicious_thres=0.2):
-        self.llm = llm
-        self.uncertain_thres = uncertain_thres
-        self.malicious_thres = malicious_thres
-
-    def preprocess_input(self, question, docs):
-        query_enc = self.llm.tokenizer(question, return_tensors="pt")
-        query_ids = query_enc["input_ids"].to("cuda")
-        query_mask = query_enc["attention_mask"].to("cuda")
-        doc_ids_list = []
-        for doc in docs:
-            doc_enc = self.llm.tokenizer(doc, return_tensors="pt")
-            doc_ids = doc_enc["input_ids"].to("cuda")
-            doc_ids_list.append(doc_ids)
-        return query_ids, query_mask, doc_ids_list
-
-    def query(self, data_item):
-        question = data_item["question"]
-        docs = data_item["topk_content"]
-        query_ids, query_mask, doc_ids_list = self.preprocess_input(question, docs)
-
-        stop_list = ["\n#", "\n##","\n###","\n####","\n#####"] + ["\n\n"] ################ seems to work fine
-        stop_token_ids = [self.llm.tokenizer(x, return_tensors='pt', add_special_tokens=False)['input_ids'] for x in stop_list]
-        stop_token_ids = [LongTensor(x).to("cuda") for x in stop_token_ids]
-        stopping_criteria = StoppingCriteriaList([
-            MaxLengthCriteria(max_length=self.llm.max_output_tokens),
-            StopOnTokens(stop_token_ids=stop_token_ids)
-        ])
-
-        output_text, flagged_docs = greedy_rag_decoding(
-            model=self.llm.model,
-            tokenizer=self.llm.tokenizer,
-            stopping_criteria=stopping_criteria,
-            query_ids=query_ids,
-            query_attention_mask=query_mask,
-            doc_ids_list=doc_ids_list,
-            uncertain_thres=self.uncertain_thres,
-            malicious_thres=self.malicious_thres
-        )
-        return output_text, flagged_docs
     
 
 class RandomSamplingReQueryAgg(RRAG):
@@ -668,4 +625,3 @@ class RandomSamplingReQueryAgg(RRAG):
             '''What is the most accurate and supported answer to the question supported by the majority of the responses? The answer should be as short as possible and can only use words found in the context information.\n\n'''
             f"{response_text}\n\nQuestion: {question}\nAnswer:"
         )
->>>>>>> 47b9a7b39a700058e5630150092df4e0e665f29f

@@ -164,7 +164,7 @@ def main():
                     for rep_idx in range(args.rep):
                         logger.info(f'==== attackpos: {i}, item: {data_idx}, defended rep: {rep_idx}')
                         if args.defense_method == "graph" or args.defense_method == "MIS":
-                            response_defended,flagg_docs = model.query(data_item)
+                            response_defended = model.query(data_item)
                         elif args.defense_method in ['astuterag', 'instructrag_icl']:
                             response_defended = model.query(data_item)
                         else:              
