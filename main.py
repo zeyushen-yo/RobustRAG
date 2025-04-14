@@ -138,7 +138,7 @@ def main():
             undefended_asr_cnt = 0
             defended_asr_cnt = 0
             response_list = []
-            for data_idx, data_item in enumerate(tqdm(data_tool.data[:2])):
+            for data_idx, data_item in enumerate(tqdm(data_tool.data)):
                 data_item = data_tool.process_data_item(data_item)
                 if not no_attack:
                     data_item = attacker.attack(data_item)
