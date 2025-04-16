@@ -147,12 +147,12 @@ def main():
                 if args.dataset_name == 'biogen':
                     attacker = PIALONG(top_k = args.top_k, repeat=3, poison_pos = i)
                 else:
-                    attacker = PIA(top_k = args.top_k, repeat=10, poison_pos = i)
+                    attacker = PIA(top_k = args.top_k, repeat=1, poison_pos = i)
             elif args.attack_method == 'Poison':
                 if args.dataset_name == 'biogen':
                     attacker = PoisonLONG(top_k = args.top_k, repeat=3, poison_pos = i)
                 else:
-                    attacker = Poison(top_k = args.top_k, repeat=10, poison_pos = i)
+                    attacker = Poison(top_k = args.top_k, repeat=1, poison_pos = i)
             else:
                 NotImplementedError
 
@@ -160,6 +160,7 @@ def main():
             undefended_corr_cnt = 0
             undefended_asr_cnt = 0
             defended_asr_cnt = 0
+
             #response_list = []
             defended_input_tokens = 0
             defended_output_tokens = 0
@@ -173,6 +174,7 @@ def main():
             if args.max_samples is not None:
                 data_list = data_list[:args.max_samples]
             for data_idx, data_item in enumerate(tqdm(data_list)):
+
                 data_item = data_tool.process_data_item(data_item)
                 if not no_attack:
                     data_item = attacker.attack(data_item)
