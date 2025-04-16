@@ -9,6 +9,8 @@ scripts/hf.slurm
 scripts/gpt.slurm
 temp/
 log
+log_old
+output_old
 figs_accuracy
 figs_robustness
 figs_pareto
