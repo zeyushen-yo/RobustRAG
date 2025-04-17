@@ -12,6 +12,7 @@ from src.attack import *
 from src.helper import get_log_name
 import matplotlib.pyplot as plt
 import pandas as pd
+from llm_judge import llm_judge
 import time
 import csv
 from llm_judge import llm_judge
@@ -218,7 +219,7 @@ def main():
                             response_defended = model.query(data_item)
                             if args.post_proc_llm:
                                 response_defended = llm_judge("gpt-4o", data_item["question"], response_defended)
-                        else:
+                        else:              
                             response_defended = model.query(data_item, gamma=gamma)
                         
                         defended_corr = data_tool.eval_response(response_defended,data_item)
