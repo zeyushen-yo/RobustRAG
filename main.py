@@ -12,6 +12,7 @@ from src.attack import *
 from src.helper import get_log_name
 import matplotlib.pyplot as plt
 import pandas as pd
+from llm_judge import llm_judge
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Robust RAG')
@@ -165,8 +166,10 @@ def main():
                         logger.info(f'==== attackpos: {i}, item: {data_idx}, defended rep: {rep_idx}')
                         if args.defense_method == "graph" or args.defense_method == "MIS":
                             response_defended = model.query(data_item)
-                        elif args.defense_method in ['astuterag', 'instructrag_icl']:
+                        elif args.defense_method == 'astuterag':
                             response_defended = model.query(data_item)
+                        elif args.defense_method == 'instructrag_icl':
+                            response_defended = llm_judge("gpt-4o", data_item["question"], model.query(data_item))
                         else:              
                             response_defended = model.query(data_item, gamma=gamma)
                         defended_corr = data_tool.eval_response(response_defended,data_item)
