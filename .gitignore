@@ -9,8 +9,13 @@ scripts/hf.slurm
 scripts/gpt.slurm
 temp/
 log
+log_old
+output_old
 figs_accuracy
 figs_robustness
 figs_pareto
 figs
+scripts/all_cpu.slurm
+scripts/run_cpu.sh
+scripts/test.sh
 data/unfiltered-web-dev.json

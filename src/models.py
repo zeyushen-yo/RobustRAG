@@ -3,7 +3,8 @@ from transformers import LlamaTokenizer, LlamaForCausalLM
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from transformers import StoppingCriteriaList
 from .helper import StopOnTokens
-import deepspeed
+#import deepspeed
+from together import Together
 
 from torch import LongTensor, FloatTensor
 
@@ -12,44 +13,58 @@ logger = logging.getLogger('RRAG-main')
 
 import litellm
 from litellm import batch_completion
+from litellm.exceptions import RateLimitError
 from openai import OpenAI
 import os 
 import json
+import time
 import joblib
 from .prompt_template import *
-MAX_NEW_TOKENS = 20
-CONTEXT_MAX_TOKENS = {'/scratch/gpfs/zs7353/Mistral-7B-Instruct-v0.2': 8192, 
-                      '/scratch/gpfs/zs7353/Llama-3.2-3B-Instruct': 4096, 
-                      '/scratch/gpfs/zs7353/Llama-3.2-1B-Instruct': 4096, 
-                      '/scratch/gpfs/zs7353/Llama-3.1-8B-Instruct': 8192, 
-                      '/scratch/gpfs/zs7353/Mixtral-8x7B-Instruct-v0.1': 32000,
-                      '/scratch/gpfs/zs7353/DeepSeek-R1-Distill-Qwen-7B': 8192,
+MAX_NEW_TOKENS = 1024
+CONTEXT_MAX_TOKENS = {'Mistral-7B-Instruct-v0.2': 8192, 
+                      'Llama-3.2-3B-Instruct': 4096, 
+                      'Llama-3.2-1B-Instruct': 4096, 
+                      'Llama-3.1-8B-Instruct': 8192, 
+                      'Mixtral-8x7B-Instruct-v0.1': 32000,
+                      'DeepSeek-R1-Distill-Qwen-7B': 8192,
                       'gpt-4o':8192,
                       'o1-mini':8192,
-                      '/scratch/gpfs/zs7353/vicuna-7b-v1.5': 4096}
+                      'vicuna-7b-v1.5': 4096}
 
 
-def create_model(model_name,**kwargs):
-    if model_name == 'mistral7b':
-        return HFModel('/scratch/gpfs/zs7353/Mistral-7B-Instruct-v0.2',MISTRAL_TMPL,**kwargs) 
-    elif model_name == 'deepseek7b':
-        return HFModel('/scratch/gpfs/zs7353/DeepSeek-R1-Distill-Qwen-7B',DEEPSEEK_TMPL,**kwargs)
-    elif model_name == 'llama3b':
-        return HFModel('/scratch/gpfs/zs7353/Llama-3.2-3B-Instruct',LLAMA_TMPL,**kwargs) 
-    elif model_name == 'llama1b':
-        return HFModel('/scratch/gpfs/zs7353/Llama-3.2-1B-Instruct',LLAMA_TMPL,**kwargs) 
-    elif model_name == 'gpt-4o':
-        return GPTModel('gpt-4o', GPT_TMPL, **kwargs) 
-    elif model_name == 'llama8b':
-        return HFModel('/scratch/gpfs/zs7353/Llama-3.1-8B-Instruct',LLAMA_TMPL,**kwargs) 
-    elif model_name == 'vicuna7b':
-        return HFModel('/scratch/gpfs/zs7353/vicuna-7b-v1.5',VICUNA_TMPL,**kwargs)  
-    elif model_name == 'mixtral8x7b':
-        return HFModel('/scratch/gpfs/zs7353/Mixtral-8x7B-Instruct-v0.1',MISTRAL_TMPL,**kwargs) 
-    elif model_name == 'o1-mini':
-        return GPTModel('o1-mini', GPT_TMPL, **kwargs) 
+def create_model(model_name, model_dir, use_open_model_api=True, **kwargs):
+    if not use_open_model_api:
+        if model_name == 'mistral7b':
+            return HFModel('Mistral-7B-Instruct-v0.2',model_dir,MISTRAL_TMPL,**kwargs) 
+        elif model_name == 'deepseek7b':
+            return HFModel('DeepSeek-R1-Distill-Qwen-7B',model_dir,DEEPSEEK_TMPL,**kwargs)
+        elif model_name == 'llama3b':
+            return HFModel('Llama-3.2-3B-Instruct',model_dir,LLAMA_TMPL,**kwargs) 
+        elif model_name == 'llama1b':
+            return HFModel('Llama-3.2-1B-Instruct',model_dir,LLAMA_TMPL,**kwargs) 
+        elif model_name == 'llama8b':
+            return HFModel('Llama-3.1-8B-Instruct',model_dir,LLAMA_TMPL,**kwargs) 
+        elif model_name == 'vicuna7b':
+            return HFModel('vicuna-7b-v1.5',model_dir,VICUNA_TMPL,**kwargs)  
+        elif model_name == 'mixtral8x7b':
+            return HFModel('Mixtral-8x7B-Instruct-v0.1',model_dir,MISTRAL_TMPL,**kwargs)
+        elif model_name == 'o1-mini':
+            return GPTModel('o1-mini', GPT_TMPL, **kwargs) 
+        elif model_name == 'gpt-4o':
+            return GPTModel('gpt-4o', GPT_TMPL, **kwargs) 
+        else:
+            raise NotImplementedError
     else:
-        raise NotImplementedError
+        if model_name == 'tai_mistral7b':
+            return TogetherAIModel('mistralai/Mistral-7B-Instruct-v0.2',MISTRAL_TMPL,**kwargs)  
+        elif model_name == 'tai_llama8b':
+            return TogetherAIModel('meta-llama/Llama-3-8b-chat-hf',LLAMA_TMPL,**kwargs) 
+        elif model_name == 'o1-mini':
+            return GPTModel('o1-mini', GPT_TMPL, **kwargs) 
+        elif model_name == 'gpt-4o':
+            return GPTModel('gpt-4o', GPT_TMPL, **kwargs) 
+        else:
+            raise NotImplementedError
 
 class BaseModel:
     def __init__(self,cache_path=None):
@@ -68,6 +83,9 @@ class BaseModel:
 
         # input prompt template
         self.prompt_template = {}
+
+        self.total_input_tokens = 0
+        self.total_output_tokens = 0
 
     def query(self, prompt):
         if self.use_cache: # use cache if cache hits
@@ -183,20 +201,30 @@ class BaseModel:
             context_str = '\n\n'.join(topk_content)
             return fill_template(template,question,context_str,choices,use_retrieval,as_multi_choice,hints)
 
+    def get_token_count(self):
+        return {
+            "input": self.total_input_tokens,
+            "output": self.total_output_tokens,
+        }
+
+    def reset_token_count(self):
+        self.total_input_tokens = 0
+        self.total_output_tokens = 0
 
 class HFModel(BaseModel):
-    def __init__(self, model_name, prompt_template, cache_path=None, max_output_tokens=None, **kwargs):
+    def __init__(self, model_name, model_dir, prompt_template, cache_path=None, max_output_tokens=None, **kwargs):
         super().__init__(cache_path)
         # set max number of output tokens
         self.max_output_tokens = MAX_NEW_TOKENS if max_output_tokens is None else max_output_tokens 
 
         # set up tokenizer and model
-        self.tokenizer = AutoTokenizer.from_pretrained(model_name) 
+        model_path = model_dir + model_name
+        self.tokenizer = AutoTokenizer.from_pretrained(model_path) 
         if "CohereForAI" in model_name:
             #'CohereForCausalLM' object has no attribute 'torch_dtype'
-            self.model = AutoModelForCausalLM.from_pretrained(model_name,**kwargs) 
+            self.model = AutoModelForCausalLM.from_pretrained(model_path,**kwargs) 
         else:
-            self.model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.bfloat16, device_map='cuda',**kwargs)
+            self.model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=torch.bfloat16, device_map='cuda',**kwargs)
         
         self.prompt_template = prompt_template
         self.tokenizer.padding_side = "left"
@@ -205,14 +233,6 @@ class HFModel(BaseModel):
 
         with open("configs/ds_config.json", 'r') as f:
             ds_config = json.load(f)
-
-        # self.model = deepspeed.init_inference(
-        #     self.model,
-        #     config=ds_config,
-        #     mp_size=4,    
-        #     max_tokens=8192,
-        #     replace_method="auto"
-        # )
 
         self.generation_kwargs = {
             'max_new_tokens':self.max_output_tokens,
@@ -230,6 +250,7 @@ class HFModel(BaseModel):
         inputs = self.tokenizer(prompt, return_tensors="pt").to("cuda")
 
         token_length = inputs.input_ids.size(1)
+        self.total_input_tokens += token_length
         # check if the num of token exceeds the max context window ..
         # this only happens when we use the bio generation data without any defense (i.e., we concatenate all long passages together)
         # we did not implement this cut off for _batch_query
@@ -244,6 +265,8 @@ class HFModel(BaseModel):
             logger.warning(f"Prompt length exceeds the limit, cut the prompt to {inputs.input_ids.size(1)} tokens")
         with torch.no_grad():
             outputs = self.model.generate(**inputs,**self.generation_kwargs)
+        output_token_count = outputs[0].size(0) - inputs.input_ids.size(1)
+        self.total_output_tokens += output_token_count
         outputs = outputs[0][len(inputs[0]):]
         result = self.tokenizer.decode(outputs, skip_special_tokens=True)
         result = self._clean_response(result)
@@ -257,6 +280,7 @@ class HFModel(BaseModel):
             ).to("cuda")
             with torch.no_grad():
                 outputs = self.model.generate(**inputs, **self.generation_kwargs)
+            self.total_output_tokens += outputs.numel() - inputs['input_ids'].numel()
             results = self.tokenizer.batch_decode(
                 outputs[:, len(inputs[0]):], skip_special_tokens=True
             )
@@ -299,6 +323,8 @@ class GPTModel(BaseModel):
                     temperature=self.temperature,
                     max_tokens=self.max_output_tokens
                 )
+            self.total_input_tokens += chat.usage.prompt_tokens
+            self.total_output_tokens += chat.usage.completion_tokens
             response = chat.choices[0].message.content
         except Exception as e:
             print(e)
@@ -320,6 +346,8 @@ class GPTModel(BaseModel):
                 messages=prompt_list_with_template,
                 max_tokens=self.max_output_tokens
             )
+            self.total_input_tokens += sum(x.usage.prompt_tokens for x in result)
+            self.total_output_tokens += sum(x.usage.completion_tokens for x in result)
             response_list = [x.choices[0].message.content for x in result]
         except Exception as e:
             print("Error during batch_completion:", e)
@@ -331,3 +359,37 @@ class GPTModel(BaseModel):
 
     def query_biogen(self, prompt):
         return self.query(prompt)
+
+
+class TogetherAIModel(BaseModel):
+    def __init__(self, model_name, prompt_template, cache_path=None, max_output_tokens=None, **kwargs):
+        super().__init__(cache_path)
+        self.model_name = model_name
+        self.prompt_template = prompt_template
+        self.temperature = 1.0
+        self.max_output_tokens = MAX_NEW_TOKENS if max_output_tokens is None else max_output_tokens
+
+        self.client = Together(api_key=os.getenv("TOGETHER_API_KEY", ""))
+
+    def _query(self, prompt):
+        try:
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant."},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=self.temperature,
+                max_tokens=self.max_output_tokens
+            )
+
+            self.total_input_tokens += response.usage.prompt_tokens
+            self.total_output_tokens += response.usage.completion_tokens
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"Error in Together _query: {e}")
+            return ""
+
+    def _batch_query(self, prompt_list):
+        # TODO: implement batch query if supported
+        return [self._query(prompt) for prompt in prompt_list]
