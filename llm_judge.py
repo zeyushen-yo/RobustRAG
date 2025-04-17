@@ -1,5 +1,9 @@
 import os
+import re
+import logging
 from openai import AzureOpenAI
+
+logger = logging.getLogger('RRAG-main')
 
 sandbox_api_key = os.environ['AI_SANDBOX_KEY']
 sandbox_endpoint = "https://api-ai-sandbox.princeton.edu/"
@@ -44,9 +48,11 @@ The answer you should provide is the following:
 '''
 
 def llm_judge(model, question, answer):
-    judge_prompt = judge_prompt.format(question=question, answer=answer)
-    response = get_gpt_output(model, judge_prompt)
-    return extract_from_text(response, "Answer")
+    final_prompt = judge_prompt.format(question=question, answer=answer)
+    response = get_gpt_output(model, final_prompt)
+    final_response = extract_from_text(response, "Answer")
+    logger.debug(f"Final response after post-processing by LLM judge: {final_response}")
+    return final_response
 
 def get_gpt_output(model, prompt, temperature=0):
     messages = [{"role": "user", "content": prompt}]
@@ -69,5 +75,6 @@ def extract_from_text(text, tag):
         pattern = fr'<{tag}>\s*(.*?)\s*</{tag}>'
         match = re.search(pattern, text, re.IGNORECASE | re.DOTALL)
         return match.group(1).strip() if match else ""
-    except:
+    except Exception as e:
+        print("LLM Judge error extracting from text:", e)
         return ""

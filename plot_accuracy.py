@@ -100,9 +100,7 @@ exp_list = [
     "realtimeqa-llama3b-instructrag_icl-rep5-top10-attacknone",
     "realtimeqa-llama3b-instructrag_icl-rep5-top10-attackPIA",
     "realtimeqa-llama3b-instructrag_icl-rep5-top10-attackPoison",
-]
 
-new_exp_list = [
     "open_nq-llama3b-astuterag-rep5-top10-attacknone",
     "open_nq-llama3b-astuterag-rep5-top10-attackPIA",
     "open_nq-llama3b-astuterag-rep5-top10-attackPoison",
@@ -118,6 +116,12 @@ new_exp_list = [
     "open_nq-mistral7b-instructrag_icl-rep5-top10-attacknone",
     "open_nq-mistral7b-instructrag_icl-rep5-top10-attackPIA",
     "open_nq-mistral7b-instructrag_icl-rep5-top10-attackPoison",
+]
+
+new_exp_list = [
+    "realtimeqa-tai_llama8b-instructrag_icl-True-rep5-top10-attacknone",
+    "realtimeqa-tai_llama8b-instructrag_icl-True-rep5-top10-attackPIA"
+    "realtimeqa-tai_llama8b-instructrag_icl-True-rep5-top10-attackPoison"
 ]
 
 plt.rcParams.update({'font.size': 14})

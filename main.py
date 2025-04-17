@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import time
 import csv
+from llm_judge import llm_judge
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Robust RAG')
@@ -47,7 +48,8 @@ def parse_args():
     parser.add_argument('--use_cache', action = 'store_true', help='save/use cache responses from LLM')
     parser.add_argument('--no_vanilla', action = 'store_true', help='do not run vanilla RAG')
     parser.add_argument('--max_samples', type=int, default=None, help='limit maximum number of samples to run for testing') 
-    parser.add_argument('--use_open_model_api', action = 'store_true', help='use local model instead of APIs for open models') 
+    parser.add_argument('--use_open_model_api', action = 'store_true', help='use local model instead of APIs for open models')
+    parser.add_argument('--post_proc_llm', action = 'store_true', help='use post-processing for responses')
 
     args = parser.parse_args()
     return args
@@ -214,6 +216,8 @@ def main():
                             response_defended = model.query(data_item)
                         elif args.defense_method in ['astuterag', 'instructrag_icl']:
                             response_defended = model.query(data_item)
+                            if args.post_proc_llm:
+                                response_defended = llm_judge("gpt-4o", data_item["question"], response_defended)
                         else:
                             response_defended = model.query(data_item, gamma=gamma)
                         

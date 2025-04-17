@@ -73,7 +73,7 @@ class InstructRAG_ICL(RRAG):
             
             ###
 
-            Now it is your turn to analyze the following documents and answer the given question.
+            Now it is your turn to analyze the following documents and answer the given question. Highlight your final answer using <ANSWER> your answer </ANSWER>.
 
             {document_list}
 

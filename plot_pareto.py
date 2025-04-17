@@ -13,6 +13,8 @@ def get_undefended_metrics(df, gamma, rank):
 model = "llama3b"
 dataset = "realtimeqa"
 
+plt.rcParams.update({'font.size': 14})
+
 for attack in ["PIA", "Poison", "none"]:
     for attack_position in [0,4,9]:
         name = f"{model}-{dataset}-{attack}-attackpos{attack_position}"
@@ -24,16 +26,22 @@ for attack in ["PIA", "Poison", "none"]:
 
         astuterag_df = pd.read_csv(f"./output/{dataset}-{model}-astuterag-rep5-top10-attack{attack}.csv")
         instructrag_icl_df = pd.read_csv(f"./output/{dataset}-{model}-instructrag_icl-rep5-top10-attack{attack}.csv")
+
+        #astuterag_postproc_df = pd.read_csv(f"./output/{dataset}-tai_llama8b-astuterag-True-rep5-top10-attack{attack}.csv")
+        instructrag_icl_postproc_df = pd.read_csv(f"./output/{dataset}-tai_llama8b-instructrag_icl-True-rep5-top10-attack{attack}.csv")
         
         data = {
-            "keyword weighted ($\gamma=0.8$)": get_defended_metrics(keyword_df, gamma=0.8, rank=attack_position),
-            "keyword unweighted ($\gamma=1.0$)": get_defended_metrics(keyword_df, gamma=1.0, rank=attack_position),
+            "keyword weighted": get_defended_metrics(keyword_df, gamma=0.8, rank=attack_position),
+            "keyword unweighted": get_defended_metrics(keyword_df, gamma=1.0, rank=attack_position),
 
-            "sampling weighted ($\gamma=0.8$, T=3, M=5)": get_defended_metrics(sampling_df35, gamma=0.8, rank=attack_position),
-            "sampling unweighted ($\gamma=1.0$, T=3, M=5)": get_defended_metrics(sampling_df35, gamma=1.0, rank=attack_position),
+            "sampling weighted": get_defended_metrics(sampling_df35, gamma=0.8, rank=attack_position),
+            "sampling unweighted": get_defended_metrics(sampling_df35, gamma=1.0, rank=attack_position),
 
             "astuterag": get_defended_metrics(astuterag_df, gamma=1.0, rank=attack_position),
+            #"astuterag_postproc": get_defended_metrics(astuterag_postproc_df, gamma=1.0, rank=attack_position),
+            
             "instructrag_icl": get_defended_metrics(instructrag_icl_df, gamma=1.0, rank=attack_position),
+            "instructrag_icl_postproc": get_defended_metrics(instructrag_icl_postproc_df, gamma=1.0, rank=attack_position),
 
             "vanilla": get_undefended_metrics(keyword_df, gamma=1.0, rank=attack_position),
         }
