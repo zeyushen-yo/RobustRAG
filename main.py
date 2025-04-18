@@ -12,10 +12,9 @@ from src.attack import *
 from src.helper import get_log_name
 import matplotlib.pyplot as plt
 import pandas as pd
-from llm_judge import llm_judge
+from llm_judge import LLMJudge
 import time
 import csv
-from llm_judge import llm_judge
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Robust RAG')
@@ -30,15 +29,16 @@ def parse_args():
 
     # attack
     parser.add_argument('--attack_method', type=str, default='none',choices=['none','Poison','PIA'], help='The attack method to use (Poison or Prompt Injection)')
+    parser.add_argument('--attackpos', type=int, default=0, help='The position of the attack in the top-k retrieval (0-indexed)')
 
     # defense
-    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding', 'sampling', 'astuterag', 'instructrag_icl', 'trustrag', 'graph', 'MIS'],help='The defense method to use')
+    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding', 'sampling', 'astuterag','instructrag_icl','graph','MIS'],help='The defense method to use')
     parser.add_argument('--alpha', type=float, default=0.3, help='keyword filtering threshold alpha')
     parser.add_argument('--beta', type=float, default=3.0, help='keyword filtering threshold beta')
     parser.add_argument('--eta', type=float, default=0.0, help='decoding confidence threshold eta')
     parser.add_argument('--T', type=int, default=3, help='number of samples for sampling method')
     parser.add_argument('--m', type=int, default=5, help='number of docs per sample for sampling method')
-    parser.add_argument('--agg', type=str, default="emb", help='method for aggregating responses from multiple samples')
+    parser.add_argument('--gamma', type=float, default=1.0, help='weight discount factor for reliability-aware methods (between 0 and 1)')
 
     # long gen certifcation # not really used in the paper
     parser.add_argument('--temperature', type=float, default=1.0, help='The temperature for softmax')
@@ -47,15 +47,14 @@ def parse_args():
     parser.add_argument('--debug', action = 'store_true', help='output debugging logging information')
     parser.add_argument('--save_response', action = 'store_true', help='save the results for later analysis')
     parser.add_argument('--use_cache', action = 'store_true', help='save/use cache responses from LLM')
-    parser.add_argument('--no_vanilla', action = 'store_true', help='do not run vanilla RAG')
     parser.add_argument('--max_samples', type=int, default=None, help='limit maximum number of samples to run for testing') 
-    parser.add_argument('--use_open_model_api', action = 'store_true', help='use local model instead of APIs for open models')
-    parser.add_argument('--post_proc_llm', action = 'store_true', help='use post-processing for responses')
+    parser.add_argument('--use_open_model_api', action = 'store_true', help='use APIs instead of local model for open models')
 
     args = parser.parse_args()
     return args
 
 def main():
+    print(torch.cuda.get_device_name(0) if torch.cuda.is_available() else "No GPU")
     args = parse_args()
     LOG_NAME = get_log_name(args)
     logging_level = logging.DEBUG if args.debug else logging.INFO
@@ -72,8 +71,6 @@ def main():
 
     logger.info(args)
 
-    device = 'cuda'
-
     data_tool = load_data(args.dataset_name,args.top_k)
 
     if args.use_cache: # use/save cached responses from LLM
@@ -88,194 +85,159 @@ def main():
     else:
         llm = create_model(args.model_name,args.model_dir, args.use_open_model_api, cache_path=cache_path)
         longgen = False
-    no_defense = args.defense_method == 'none' or args.top_k<=0 # do not run defense
+ 
+    if args.defense_method == 'voting': # weighted majority voting
+        assert 'mc' in args.dataset_name
+        model = WeightedMajorityVoting(llm)
+    elif args.defense_method == 'keyword': # weighted keyword aggregation
+        model = WeightedKeywordAgg(llm, relative_threshold=args.alpha, absolute_threshold=args.beta, gamma=args.gamma, longgen=longgen) 
+    elif args.defense_method == 'decoding':
+        if args.eta>0 and not longgen:
+            logger.warning(f"using non-zero eta {args.eta} for QA")
+        model = WeightedDecodingAgg(llm, eta=args.eta, gamma=args.gamma)
+    elif args.defense_method == 'graph':
+        model = GraphBasedRRAG(llm)
+    elif args.defense_method == 'MIS':
+        model = MISBasedRRAG(llm)
+    elif args.defense_method == "sampling":
+        model = RandomSamplingReQueryAgg(
+            llm=llm,
+            sample_size=args.m,
+            num_samples=args.T,
+            gamma=args.gamma,
+        )
+    elif args.defense_method == 'instructrag_icl':
+        model = InstructRAG_ICL(llm)
+    elif args.defense_method == 'astuterag':
+        model = AstuteRAG(llm)
 
-    if args.defense_method in ['astuterag', 'instructrag_icl', 'graph', 'MIS']:
-        gamma_values = [1] # dummy. gamma is not useful in this case
+    no_attack = args.attack_method == 'none' or args.top_k<=0 # do not run attack
+
+    # INSTANTIATE ATTACKER
+    if no_attack:
+        pass
+    elif args.attack_method == 'PIA':
+        if args.dataset_name == 'biogen':
+            attacker = PIALONG(top_k = args.top_k, repeat=3, poison_pos = args.attackpos)
+        else:
+            attacker = PIA(top_k = args.top_k, repeat=10, poison_pos = args.attackpos)
+    elif args.attack_method == 'Poison':
+        if args.dataset_name == 'biogen':
+            attacker = PoisonLONG(top_k = args.top_k, repeat=3, poison_pos = args.attackpos)
+        else:
+            attacker = Poison(top_k = args.top_k, repeat=10, poison_pos = args.attackpos)
     else:
-        gamma_values = [0.5, 0.8, 1.0]
+        raise NotImplementedError(f"Attack method {args.attack_method} is not implemented.")
+    
+    # can limit number of samples (for debugging)
+    data_list = data_tool.data
+    if args.max_samples is not None:
+        data_list = data_list[:args.max_samples]
 
     output_csv_file = f"./output/{LOG_NAME}.csv"
     fieldnames = [
+        "rep_idx",
+        "acc",
+        "asr",
+        "input_tokens",
+        "output_tokens",
+        "total_time_sec",
+        "defense_method",
         "gamma",
-        "rank",
-        "undefended_acc",
-        "defended_acc",
-        "undefended_asr",
-        "defended_asr",
-        "undefended_input_tokens",
-        "undefended_output_tokens",
-        "defended_input_tokens",
-        "defended_output_tokens",
-        "undefended_total_time_sec",
-        "defended_total_time_sec"
+        "attack_method",
+        "attackpos",
+        "model_name",
+        "dataset_name",
+        "dataset_size",        
     ]
     with open(output_csv_file, mode='w', newline='') as f:
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
+    llm_judge = LLMJudge() if args.defense_method in ['astuterag', 'instructrag_icl'] else None
+    response_list = []
+    for rep_idx in range(args.rep):
+        corr_cnt = 0
+        asr_cnt = 0
+        input_tokens = 0
+        output_tokens = 0
+        total_time = 0
 
-    results_all = []
-    for gamma in gamma_values:
-        if args.defense_method == 'voting': # weighted majority voting
-            assert 'mc' in args.dataset_name
-            model = WeightedMajorityVoting(llm)
-        elif args.defense_method == 'keyword': # weighted keyword aggregation
-            model = WeightedKeywordAgg(llm, relative_threshold=args.alpha, absolute_threshold=args.beta, longgen=longgen) 
-        elif args.defense_method == 'decoding':
-            if args.eta>0 and not longgen:
-                logger.warning(f"using non-zero eta {args.eta} for QA")
-            model = WeightedDecodingAgg(llm, args)
-        elif args.defense_method == 'graph':
-            model = GraphBasedRRAG(llm)
-        elif args.defense_method == 'MIS':
-            model = MISBasedRRAG(llm)
-        elif args.defense_method == "sampling":
-            model = RandomSamplingReQueryAgg(
-                llm=llm,
-                sample_size=args.m,
-                num_samples=args.T,
-                gamma=gamma,
-            )
-        elif args.defense_method == 'instructrag_icl':
-            model = InstructRAG_ICL(llm)
-        elif args.defense_method == 'astuterag':
-            model = AstuteRAG(llm)
-
-        no_attack = args.attack_method == 'none' or args.top_k<=0 # do not run attack
-
-        for i in range(args.top_k):
-            if no_attack:
-                pass
-            elif args.attack_method == 'PIA':
-                if args.dataset_name == 'biogen':
-                    attacker = PIALONG(top_k = args.top_k, repeat=3, poison_pos = i)
-                else:
-                    attacker = PIA(top_k = args.top_k, repeat=1, poison_pos = i)
-            elif args.attack_method == 'Poison':
-                if args.dataset_name == 'biogen':
-                    attacker = PoisonLONG(top_k = args.top_k, repeat=3, poison_pos = i)
-                else:
-                    attacker = Poison(top_k = args.top_k, repeat=1, poison_pos = i)
-            else:
-                NotImplementedError
-
-            defended_corr_cnt = 0
-            undefended_corr_cnt = 0
-            undefended_asr_cnt = 0
-            defended_asr_cnt = 0
-
-            #response_list = []
-            defended_input_tokens = 0
-            defended_output_tokens = 0
-            undefended_input_tokens = 0
-            undefended_output_tokens = 0
-
-            defended_total_time = 0
-            undefended_total_time = 0
-
-            data_list = data_tool.data
-            if args.max_samples is not None:
-                data_list = data_list[:args.max_samples]
-            for data_idx, data_item in enumerate(tqdm(data_list)):
-
-                data_item = data_tool.process_data_item(data_item)
-                if not no_attack:
-                    data_item = attacker.attack(data_item)
-                
-                # undefended
-                if not args.no_vanilla:
-                    start_time = time.perf_counter()
-                    llm.reset_token_count()
-                    for rep_idx in range(args.rep):
-                        logger.info(f'==== gamma: {gamma}, attackpos: {i}, item: {data_idx}, vanilla rep: {rep_idx}')
-                        response_undefended = model.query_undefended(data_item)
-                        undefended_corr = data_tool.eval_response(response_undefended,data_item)
-                        undefended_corr_cnt += undefended_corr
-                    token_count = llm.get_token_count()
-                    undefended_input_tokens += token_count["input"]
-                    undefended_output_tokens += token_count["output"]
-                    llm.reset_token_count()
-
-                    end_time = time.perf_counter()
-                    undefended_total_time += (end_time - start_time)
-                else:
-                    response_undefended = ''
-                    undefended_corr = False
-
-                if not no_attack:
-                    undefended_asr = data_tool.eval_response_asr(response_undefended,data_item)
-                    undefended_asr_cnt += undefended_asr
-                
-                #response_list.append({"query":data_item["question"], "undefended":response_undefended})
-                
-                if not no_defense:
-                    start_time = time.perf_counter()
-                    llm.reset_token_count()
-                    for rep_idx in range(args.rep):
-                        logger.info(f'==== gamma: {gamma}, attackpos: {i}, item: {data_idx}, defended rep: {rep_idx}')
-                        if args.defense_method == "graph" or args.defense_method == "MIS":
-                            response_defended = model.query(data_item)
-                        elif args.defense_method in ['astuterag', 'instructrag_icl']:
-                            response_defended = model.query(data_item)
-                            if args.post_proc_llm:
-                                response_defended = llm_judge("gpt-4o", data_item["question"], response_defended)
-                        else:              
-                            response_defended = model.query(data_item, gamma=gamma)
-                        
-                        defended_corr = data_tool.eval_response(response_defended,data_item)
-                        defended_corr_cnt += defended_corr
-                        
-                        if not no_attack:
-                            defended_asr = data_tool.eval_response_asr(response_defended,data_item)
-                            defended_asr_cnt += defended_asr
-                        #response_list.append({"query":data_item["question"],"defended":response_defended})
-                    token_count = llm.get_token_count()
-                    defended_input_tokens += token_count["input"]
-                    defended_output_tokens += token_count["output"]
-                    llm.reset_token_count()
-                    end_time = time.perf_counter()
-                    defended_total_time += (end_time - start_time)
-
-            logger.info(f'Params: Gamma: {gamma}, rank: {i}')
-            logger.info(f'undefended_corr_cnt: {undefended_corr_cnt}')
-            logger.info(f'defended_corr_cnt: {defended_corr_cnt}')
-
+        for data_idx, data_item in enumerate(tqdm(data_list)):
+            logger.info(f'==== rep_idx #{rep_idx}; item: {data_idx} ====')
+    
+            # ADD ATTACK TO DATA ITEM 
+            data_item = data_tool.process_data_item(data_item)
+            query = data_item["question"]
             if not no_attack:
-                logger.info(f'######################## ASR ########################')
-                logger.info(f'undefended_asr_cnt: {undefended_asr_cnt}')
-                logger.info(f'defended_asr_cnt: {defended_asr_cnt}')
+                data_item = attacker.attack(data_item)
 
+            # APPLY DEFENSE
+            start_time = time.perf_counter()
+            llm.reset_token_count()
+            if args.defense_method == "none":
+                response = model.query_undefended(data_item)
+            elif args.defense_method in ["graph", "MIS", "astuterag", "instructrag_icl", "voting", "keyword", "decoding", "sampling"]:
+                response = model.query(data_item)
+            else:
+                raise NotImplementedError(f"Defense method {args.defense_method} is not implemented.")
+            end_time = time.perf_counter()
+            token_count = llm.get_token_count()
+            
+            # EVALUATE RESPONSE
+            if args.defense_method in ['astuterag', 'instructrag_icl']:
+                # for astuterag and instructrag we post-process the response with LLM judge
+                final_response = llm_judge.judge(query, response)
+            else:
+                final_response = response
+            corr = data_tool.eval_response(final_response, data_item)
+            corr_cnt += corr
+            if not no_attack:
+                asr = data_tool.eval_response_asr(final_response, data_item)
+                asr_cnt += asr
+            response_list.append({
+                "query": query,
+                "initial_response": response,
+                "final_response": final_response,
+                "defense": args.defense_method,
+                "rep": rep_idx,
+                "answer":  data_item['answer'], 
+                "incorrect_answer": data_item['incorrect_answer']
+            })
+            input_tokens += token_count["input"]
+            output_tokens += token_count["output"]
+            llm.reset_token_count()
+            total_time += (end_time - start_time)
 
-            # save for later analysis, currently used for biogen dataset 
-            #if args.save_response:
-            #    os.makedirs(f'result/{args.dataset_name}',exist_ok=True)
-            #    if args.defense_method == 'keyword':
-            #        with open(f'result/{LOG_NAME}.json','w') as f:
-            #            json.dump(response_list,f,indent=4)
-            #    else:
-            #        with open(f'result/{LOG_NAME}.json','w') as f:
-            #            json.dump(response_list,f,indent=4)
+        logger.info(f'Result for rep: {rep_idx}')
+        logger.info(f'corr_cnt: {corr_cnt} out of {len(data_list)}')
+        logger.info(f'asr_cnt: {asr_cnt} out of {len(data_list)}')
 
+        # save for later analysis, currently used for biogen dataset 
+        if args.save_response:
+            os.makedirs(f'result/',exist_ok=True)
+            with open(f'result/{LOG_NAME}.json','w') as f:
+                json.dump(response_list,f,indent=4)
 
-            if args.use_cache:
-                llm.dump_cache()
+        if args.use_cache:
+            llm.dump_cache()
 
-            result_current = {
-                "gamma": gamma,
-                "rank": i,
-                "undefended_acc": undefended_corr_cnt / (len(data_tool.data) * args.rep),
-                "defended_acc": defended_corr_cnt / (len(data_tool.data) * args.rep),
-                "undefended_asr": undefended_asr_cnt / len(data_tool.data),
-                "defended_asr": defended_asr_cnt / (len(data_tool.data) * args.rep),
-                "undefended_input_tokens": undefended_input_tokens/args.rep,
-                "undefended_output_tokens": undefended_output_tokens/args.rep,
-                "defended_input_tokens": defended_input_tokens/args.rep,
-                "defended_output_tokens": defended_output_tokens/args.rep,
-                "undefended_total_time_sec": round(undefended_total_time/args.rep, 2),
-                "defended_total_time_sec": round(defended_total_time/args.rep, 2),
-            }
-            df = pd.DataFrame([result_current])
-            df.to_csv(output_csv_file, mode='a', header=False, index=False)
+        result_current = {
+            "rep_idx": rep_idx,
+            "acc": corr_cnt / (len(data_list)),
+            "asr": asr_cnt / len(data_list),
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_time_sec": round(total_time, 2),
+            "defense_method": args.defense_method,
+            "gamma": args.gamma,
+            "attack_method": args.attack_method,
+            "attackpos": args.attackpos,
+            "model_name": args.model_name,
+            "dataset_name": args.dataset_name,
+            "dataset_size": len(data_list),
+        }
+        df = pd.DataFrame([result_current])
+        df.to_csv(output_csv_file, mode='a', header=False, index=False)
 
 if __name__ == '__main__':
     main()

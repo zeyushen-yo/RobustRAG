@@ -277,8 +277,11 @@ class MISBasedRRAG(RRAG):
 
 
 class WeightedMajorityVoting(RRAG):
+    def __init__(self, llm, gamma=1):
+        self.llm = llm
+        self.gamma = gamma
 
-    def query(self, data_item, gamma = 1):
+    def query(self, data_item):
         # assume the prompt ask the LLM to output A., B., C., D., or E. No information found
         seperate_responses = self.llm.batch_query(self.llm.wrap_prompt(data_item,as_multi_choice=True,seperate=True))
         seperate_preds = []
@@ -308,14 +311,14 @@ class WeightedMajorityVoting(RRAG):
         for i, pred in enumerate(seperate_preds):
             if pred == 'E.':
                 continue
-            weight = gamma ** i  # First position weight=1, second=gamma, third=gamma^2, etc.
+            weight = self.gamma ** i  # First position weight=1, second=gamma, third=gamma^2, etc.
             total_weight += weight
             total_weight_orig += 1
 
         for i, pred in enumerate(seperate_preds):
             if pred == 'E.':
                 continue 
-            weight = gamma ** i      
+            weight = self.gamma ** i      
             cntr[pred] += weight * total_weight_orig / total_weight
         
         cntr = Counter(cntr)
@@ -330,17 +333,18 @@ class WeightedMajorityVoting(RRAG):
 
 class WeightedKeywordAgg(RRAG):
 
-    def __init__(self,llm,relative_threshold=0.3, absolute_threshold=3, abstention_threshold=1, longgen=False):
+    def __init__(self,llm,relative_threshold=0.3, absolute_threshold=3, abstention_threshold=1, gamma=1, longgen=False):
         self.llm = llm
         self.abstention_threshold = 1
         self.keyword_extractor = spacy.load("en_core_web_sm") 
         self.ignore_set = {'VERB','INTJ','ADP','AUX','CCONJ','DET','PART','PRON','SCONJ','PUNCT','SPACE'}
         self.absolute = absolute_threshold
         self.relative = relative_threshold
+        self.gamma = gamma
         self.longgen = longgen # if it is long-form generation or short-form (we use slightly different prompt template)
         logger.info(f'abs: {absolute_threshold}, relative: {relative_threshold}')
 
-    def query(self, data_item, gamma = 1, abstention_threshold=None): 
+    def query(self, data_item, abstention_threshold=None): 
         # override original threshold parameters if given
         abstention_threshold = abstention_threshold if abstention_threshold is not None else self.abstention_threshold
         if self.longgen:
@@ -357,8 +361,8 @@ class WeightedKeywordAgg(RRAG):
             if "I don't" in x:
                 abstained_idx.append(i)
             else:
-                seperate_responses.append((x, gamma ** i))
-                total_weight += gamma ** i
+                seperate_responses.append((x,  self.gamma ** i))
+                total_weight +=  self.gamma ** i
                 total_weight_orig += 1
 
         logger.debug(f'Number of retained responses: {len(seperate_responses)}')
@@ -418,7 +422,7 @@ class WeightedKeywordAgg(RRAG):
 
 
 class WeightedDecodingAgg(RRAG):
-    def __init__(self,llm, args, abstention_prob=None):
+    def __init__(self,llm, eta, gamma=1, abstention_prob=None):
         self.llm = llm
         self.llm.model.secure_decoding = secure_decoding.__get__(self.llm.model, type(self.llm.model))
         self.temperature = 1.0 #args.temperature
@@ -429,9 +433,9 @@ class WeightedDecodingAgg(RRAG):
             self.abstention_prob = abstention_prob_list.get(llm.model_name, 0.99)
             logger.debug(f"Using default abstention probability: {self.abstention_prob}")
 
-        self.args = args
-        self.eta = args.eta
-
+        self.gamma = gamma
+        self.eta = eta
+       
     def preprocess_input(self,data_item):
         prompt_list = self.llm.wrap_prompt(data_item,as_multi_choice=False,seperate=True)
         data_item_zero_shot = {"question": data_item["question"], "topk_content":[], "long_gen": True}
@@ -473,7 +477,7 @@ class WeightedDecodingAgg(RRAG):
         attention_mask = attention_mask[ab_record]
         return input_ids,attention_mask,ab_record
 
-    def query(self, data_item, gamma=1):
+    def query(self, data_item):
 
         input_ids,attention_mask,ab_record = self.preprocess_input(data_item)
 
@@ -502,7 +506,7 @@ class WeightedDecodingAgg(RRAG):
                                                            temperature=self.temperature,
                                                            tokenizer=self.llm.tokenizer,
                                                            eta=self.eta,
-                                                           gamma=gamma)
+                                                           gamma=self.gamma)
 
         generated_output_text = self.llm.tokenizer.decode(generated_outputs, skip_special_tokens=True)
         return generated_output_text
@@ -514,7 +518,7 @@ class RandomSamplingReQueryAgg(RRAG):
         llm,
         sample_size=5, 
         num_samples=3,
-        gamma=0.8
+        gamma=1
     ):
         super().__init__(llm)
         self.sample_size = sample_size
@@ -540,7 +544,7 @@ class RandomSamplingReQueryAgg(RRAG):
         embeddings = self.hf_model.encode(text_list)
         return embeddings
 
-    def query(self, data_item, gamma):
+    def query(self, data_item):
         question = data_item["question"]
         all_chunks = data_item["topk_content"]
         n = len(all_chunks)
@@ -588,43 +592,7 @@ class RandomSamplingReQueryAgg(RRAG):
         final_response = sampled_responses[best_idx]
         logger.debug(f"Second-stage final response:\n{final_response}")
         return final_response
-    
-    def query_llm_aggregator(self, data_item, gamma):
-        question = data_item["question"]
-        all_chunks = [c for c in data_item["topk_content"]]
-        n = len(all_chunks)
-
-        # Assign geometric weights to the chunks
-        weights = np.array([self.gamma ** i for i in range(n)])
-        weights /= weights.sum()  # Normalize to probability distribution
-
-        # First-stage sampling + querying
-        sampled_responses = []
-        for i in range(self.num_samples):
-            sampled_chunks = list(np.random.choice(all_chunks, size=min(self.sample_size, n), replace=False, p=weights))
-            prompt = self.build_prompt(question, sampled_chunks)
-            response = self.llm.query(prompt)
-            sampled_responses.append(response)
-
-        logger.debug(f"First-stage sampled responses:\n{sampled_responses}")
-
-        # Build second-stage re-query prompt using sampled responses
-        requery_prompt = self.build_requery_prompt(question, sampled_responses)
-        final_response = self.llm.query(requery_prompt)
-
-        logger.debug(f"Requery prompt:\n{requery_prompt}")
-        logger.debug(f"Final response:\n{final_response}")
-
-        return final_response
 
     def build_prompt(self, question, chunks):
         context_text = "\n\n".join(chunks)
         return f"Answer the following question based on the context below. It is very important that the answer should be based solely on evidence found in the context information. The answer should be as short as possible and can only use words found in the context information. \n\nContext:\n{context_text}\n\nQuestion: {question}\nAnswer:"
-
-    def build_requery_prompt(self, question, responses):
-        response_text = "\n".join([f"Response {i+1}: {r}" for i, r in enumerate(responses)])
-        return (
-            f"Given the following responses obtained using different sampled subsets of retrieved documents, "
-            '''What is the most accurate and supported answer to the question supported by the majority of the responses? The answer should be as short as possible and can only use words found in the context information.\n\n'''
-            f"{response_text}\n\nQuestion: {question}\nAnswer:"
-        )

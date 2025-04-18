@@ -5,6 +5,8 @@ from transformers import StoppingCriteriaList
 from .helper import StopOnTokens
 #import deepspeed
 from together import Together
+from vllm import LLM, SamplingParams
+
 
 from torch import LongTensor, FloatTensor
 
@@ -35,23 +37,23 @@ CONTEXT_MAX_TOKENS = {'Mistral-7B-Instruct-v0.2': 8192,
 def create_model(model_name, model_dir, use_open_model_api=True, **kwargs):
     if not use_open_model_api:
         if model_name == 'mistral7b':
-            return HFModel('Mistral-7B-Instruct-v0.2',model_dir,MISTRAL_TMPL,**kwargs) 
+            return VLLMModel('Mistral-7B-Instruct-v0.2',model_dir,MISTRAL_TMPL,**kwargs) 
         elif model_name == 'deepseek7b':
-            return HFModel('DeepSeek-R1-Distill-Qwen-7B',model_dir,DEEPSEEK_TMPL,**kwargs)
+            return VLLMModel('DeepSeek-R1-Distill-Qwen-7B',model_dir,DEEPSEEK_TMPL,**kwargs)
         elif model_name == 'llama3b':
-            return HFModel('Llama-3.2-3B-Instruct',model_dir,LLAMA_TMPL,**kwargs) 
+            return VLLMModel('Llama-3.2-3B-Instruct',model_dir,LLAMA_TMPL,**kwargs) 
         elif model_name == 'llama1b':
-            return HFModel('Llama-3.2-1B-Instruct',model_dir,LLAMA_TMPL,**kwargs) 
+            return VLLMModel('Llama-3.2-1B-Instruct',model_dir,LLAMA_TMPL,**kwargs) 
         elif model_name == 'llama8b':
-            return HFModel('Llama-3.1-8B-Instruct',model_dir,LLAMA_TMPL,**kwargs) 
+            return VLLMModel('Llama-3.1-8B-Instruct',model_dir,LLAMA_TMPL,**kwargs) 
         elif model_name == 'vicuna7b':
-            return HFModel('vicuna-7b-v1.5',model_dir,VICUNA_TMPL,**kwargs)  
+            return VLLMModel('vicuna-7b-v1.5',model_dir,VICUNA_TMPL,**kwargs)  
         elif model_name == 'mixtral8x7b':
-            return HFModel('Mixtral-8x7B-Instruct-v0.1',model_dir,MISTRAL_TMPL,**kwargs)
+            return VLLMModel('Mixtral-8x7B-Instruct-v0.1',model_dir,MISTRAL_TMPL,**kwargs)
         elif model_name == 'o1-mini':
-            return GPTModel('o1-mini', GPT_TMPL, **kwargs) 
+            return VLLMModel('o1-mini', GPT_TMPL, **kwargs) 
         elif model_name == 'gpt-4o':
-            return GPTModel('gpt-4o', GPT_TMPL, **kwargs) 
+            return VLLMModel('gpt-4o', GPT_TMPL, **kwargs) 
         else:
             raise NotImplementedError
     else:
@@ -210,6 +212,50 @@ class BaseModel:
     def reset_token_count(self):
         self.total_input_tokens = 0
         self.total_output_tokens = 0
+
+class VLLMModel(BaseModel):
+    def __init__(self, model_name, model_dir, prompt_template, cache_path=None, max_output_tokens=None, seed=42, **kwargs):
+        super().__init__(cache_path)
+
+        self.max_output_tokens = MAX_NEW_TOKENS if max_output_tokens is None else max_output_tokens 
+        self.model_name = model_name
+        self.prompt_template = prompt_template
+
+        self.llm = LLM(
+            model=model_dir + model_name,
+            tokenizer=model_dir + model_name,
+            max_model_len=20000,
+            dtype="float16",
+            **kwargs
+        )
+        self.tokenizer = self.llm.get_tokenizer()
+
+        self.sampling_params = SamplingParams(
+            max_tokens=self.max_output_tokens,
+            temperature=1.0,
+            stop_token_ids=[self.tokenizer.eos_token_id, self.tokenizer.convert_tokens_to_ids("<|eot_id|>")],
+            seed=seed,
+        )
+        
+        self.clean_str = ['\n\n']
+
+    def _query(self, prompt):
+        outputs = self.llm.generate(prompt, self.sampling_params)
+        result = outputs[0].outputs[0].text
+        self.total_input_tokens += outputs[0].prompt_token_ids.__len__()
+        self.total_output_tokens += outputs[0].outputs[0].token_ids.__len__()
+        result = self._clean_response(result)
+        return result
+
+    def _batch_query(self, prompt_list):
+        results = []
+        outputs = self.llm.generate(prompt_list, self.sampling_params)
+        for output in outputs:
+            self.total_input_tokens += len(output.prompt_token_ids)
+            self.total_output_tokens += len(output.outputs[0].token_ids)
+            result = self._clean_response(output.outputs[0].text)
+            results.append(result)
+        return results
 
 class HFModel(BaseModel):
     def __init__(self, model_name, model_dir, prompt_template, cache_path=None, max_output_tokens=None, **kwargs):

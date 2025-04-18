@@ -5,18 +5,18 @@ import torch
 
 def get_log_name(args):
     if args.defense_method == 'none': defense_str = 'none'
-    elif args.defense_method == 'voting': defense_str = f'{args.defense_method}'
-    elif args.defense_method == 'keyword': defense_str = f'{args.defense_method}-{args.alpha}-{args.beta}' 
-    elif args.defense_method == 'decoding': defense_str = f'{args.defense_method}-{args.eta}' 
+    elif args.defense_method == 'voting': defense_str = f'{args.defense_method}-gamma{args.gamma}'
+    elif args.defense_method == 'keyword': defense_str = f'{args.defense_method}-{args.alpha}-{args.beta}-gamma{args.gamma}' 
+    elif args.defense_method == 'decoding': defense_str = f'{args.defense_method}-{args.eta}-gamma{args.gamma}' 
     elif args.defense_method == 'graph': defense_str = f'{args.defense_method}' 
     elif args.defense_method == 'MIS': defense_str = f'{args.defense_method}' 
     elif args.defense_method == 'greedy': defense_str = f'{args.defense_method}-{args.eta}' 
-    elif args.defense_method == 'sampling': defense_str = f'{args.defense_method}-{args.T}-{args.m}-{args.agg}' 
-    elif args.defense_method == 'astuterag': defense_str = f'{args.defense_method}-{args.post_proc_llm}'
-    elif args.defense_method == 'instructrag_icl': defense_str = f'{args.defense_method}-{args.post_proc_llm}'
+    elif args.defense_method == 'sampling': defense_str = f'{args.defense_method}-{args.T}-{args.m}-gamma{args.gamma}' 
+    elif args.defense_method == 'astuterag': defense_str = f'{args.defense_method}'
+    elif args.defense_method == 'instructrag_icl': defense_str = f'{args.defense_method}'
     elif args.defense_method == 'trustrag': defense_str = f'{args.defense_method}' 
     else: defense_str = ""
-    return f'{args.dataset_name}-{args.model_name}-{defense_str}-rep{args.rep}-top{args.top_k}-attack{args.attack_method}'
+    return f'{args.dataset_name}-{args.model_name}-{defense_str}-rep{args.rep}-top{args.top_k}-attack{args.attack_method}-attackpos{args.attackpos}'
 
 
 def load_jsonl(file_path):

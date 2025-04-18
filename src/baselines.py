@@ -73,7 +73,7 @@ class InstructRAG_ICL(RRAG):
             
             ###
 
-            Now it is your turn to analyze the following documents and answer the given question. Highlight your final answer using <ANSWER> your answer </ANSWER>.
+            Now it is your turn to analyze the following documents and answer the given question. Highlight your exact final answer within the tag <ANSWER> your final answer </ANSWER>.
 
             {document_list}
 
@@ -127,7 +127,7 @@ class AstuteRAG(RRAG):
         Step 2: Propose Answers and Assign Confidence
         For each group of documents, propose a possible answer and assign a confidence score based on the credibility and agreement of the information.
         Step 3: Select the Final Answer
-        After evaluating all groups, select the most accurate and well-supported answer. Highlight your exact answer within <ANSWER> your answer </ANSWER>.
+        After evaluating all groups, select the most accurate and well-supported answer. Highlight your exact final answer within the tag <ANSWER> your answer </ANSWER>.
         Initial Context: {document_list}
         Question: {question}
         Answer:
