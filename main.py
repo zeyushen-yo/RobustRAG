@@ -139,6 +139,8 @@ def main():
         "rep_idx",
         "acc",
         "asr",
+        "initial_acc",
+        "initial_asr",
         "input_tokens",
         "output_tokens",
         "total_time_sec",
@@ -154,6 +156,7 @@ def main():
         writer = csv.DictWriter(f, fieldnames=fieldnames)
         writer.writeheader()
     llm_judge = LLMJudge() if args.defense_method in ['astuterag', 'instructrag_icl'] else None
+    
     response_list = []
     for rep_idx in range(args.rep):
         corr_cnt = 0
@@ -161,6 +164,10 @@ def main():
         input_tokens = 0
         output_tokens = 0
         total_time = 0
+
+        # asr and corr before post-processing with llm-judge (for astuterag and instructrag)
+        initial_corr_cnt = 0 
+        initial_asr_cnt = 0
 
         for data_idx, data_item in enumerate(tqdm(data_list)):
             logger.info(f'==== rep_idx #{rep_idx}; item: {data_idx} ====')
@@ -185,15 +192,22 @@ def main():
             
             # EVALUATE RESPONSE
             if args.defense_method in ['astuterag', 'instructrag_icl']:
-                # for astuterag and instructrag we post-process the response with LLM judge
+                # for astuterag and instructrag we post-process the response with llm-judge
                 final_response = llm_judge.judge(query, response)
             else:
                 final_response = response
+
             corr = data_tool.eval_response(final_response, data_item)
             corr_cnt += corr
             if not no_attack:
                 asr = data_tool.eval_response_asr(final_response, data_item)
                 asr_cnt += asr
+
+            # get asr and corr before llm-judge post-processing (for astuterag and instructrag)
+            initial_corr_cnt += data_tool.eval_response(response, data_item)
+            if not no_attack:
+                initial_asr_cnt += data_tool.eval_response_asr(response, data_item)
+    
             response_list.append({
                 "query": query,
                 "initial_response": response,
@@ -225,6 +239,8 @@ def main():
             "rep_idx": rep_idx,
             "acc": corr_cnt / (len(data_list)),
             "asr": asr_cnt / len(data_list),
+            "initial_acc": initial_corr_cnt / (len(data_list)),
+            "initial_asr": initial_asr_cnt / len(data_list),
             "input_tokens": input_tokens,
             "output_tokens": output_tokens,
             "total_time_sec": round(total_time, 2),
