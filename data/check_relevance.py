@@ -8,7 +8,7 @@ def contains_answer(context_item, answers):
     return any(answer.lower() in title or answer.lower() in text for answer in answers)
 
 def compute_fraction_with_answer(dataset):
-    json_path = f"./data/{dataset}.json"
+    json_path = f"./{dataset}.json"
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -34,23 +34,21 @@ def compute_fraction_with_answer(dataset):
         print(f"mean fraction: {np.mean(results):.2f}")
         print(f"SD: {np.std(results):.2f}")
 
-        plt.figure(figsize=(8, 5))
-        counts, bins, patches = plt.hist(fractions, bins=30, range=(0, 1), edgecolor='black', alpha=0.75, density=True)
-        bin_width = bins[1] - bins[0]
-        for patch, count in zip(patches, counts):
-            height = count * bin_width * 100  # percentage height
-            patch.set_height(height)
+        # Sort fractions and compute CDF
+        num_questions = len(fractions)
+        sorted_fracs = np.sort(fractions)
+        cdf = np.arange(1, num_questions + 1) / num_questions * 100  # percentage
 
-        plt.gca().set_ylim([0, 50])
-        plt.gca().set_yticks(np.linspace(0, 50, 6))
-        plt.gca().set_yticklabels([f"{int(x)}%" for x in np.linspace(0, 50, 6)])
-        
-        plt.title("Distribution of fractions of contexts that contain answers")
-        plt.xlabel("Fraction of contexts with a correct answer (verbatim)")
-        plt.ylabel("Percentage of questions")
+        # Plot CDF
+        plt.figure(figsize=(8, 5))
+        plt.plot(sorted_fracs, cdf, marker='o', linestyle='-')
+        plt.title(f"CDF of Matching Context Fractions (n={num_questions})")
+        plt.xlabel("Fraction of Contexts with a Correct Answer")
+        plt.ylabel("Cumulative % of Questions")
         plt.grid(True)
+        plt.ylim([0, 100])
         plt.tight_layout()
-        plt.savefig(f"./data/{dataset}_relevance_dist.png")
+        plt.savefig(f"./{dataset}_relevance_dist.png")
     else:
         print("No valid items to evaluate.")
 
