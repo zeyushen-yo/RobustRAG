@@ -17,7 +17,7 @@ import numpy as np
 from numpy import dot
 from numpy.linalg import norm
 import os
-import openai
+from openai import OpenAI
 from sentence_transformers import SentenceTransformer
 
 import spacy
@@ -525,19 +525,21 @@ class RandomSamplingReQueryAgg(RRAG):
         self.num_samples = num_samples
         self.gamma = gamma
 
-        self.use_openai = False
+        self.use_openai = True
         self.openai_model = "text-embedding-ada-002"
         self.hf_model_name = "/scratch/gpfs/bi0600/all-mpnet-base-v2"
 
         if not self.use_openai:
             self.hf_model = SentenceTransformer( self.hf_model_name)
+        else:
+            self.client = OpenAI()
 
     def get_openai_embeddings(self, text_list):
-        response = openai.Embedding.create(
+        response = self.client.embeddings.create(
             model=self.openai_model,
             input=text_list
         )
-        embeddings = [item["embedding"] for item in response["data"]]
+        embeddings = [item.embedding for item in response.data]
         return embeddings
 
     def get_hf_embeddings(self, text_list):
@@ -596,3 +598,126 @@ class RandomSamplingReQueryAgg(RRAG):
     def build_prompt(self, question, chunks):
         context_text = "\n\n".join(chunks)
         return f"Answer the following question based on the context below. It is very important that the answer should be based solely on evidence found in the context information. The answer should be as short as possible and can only use words found in the context information. \n\nContext:\n{context_text}\n\nQuestion: {question}\nAnswer:"
+
+
+
+class SamplingWithKeyWordAggregation(RRAG):
+    def __init__(
+        self, 
+        llm,
+        sample_size=5, 
+        num_samples=3,
+        gamma=1,
+        relative_threshold=0.3,
+        absolute_threshold=3,
+        abstention_threshold=1,
+    ):
+        super().__init__(llm)
+        self.sample_size = sample_size
+        self.num_samples = num_samples
+        self.gamma = gamma
+
+        self.keyword_extractor = spacy.load("en_core_web_sm") 
+        self.ignore_set = {'VERB','INTJ','ADP','AUX','CCONJ','DET','PART','PRON','SCONJ','PUNCT','SPACE'}
+
+        self.abstention_threshold = abstention_threshold
+        self.absolute = absolute_threshold
+        self.relative = relative_threshold
+        self.gamma = gamma
+        logger.debug(f'Sampling+keyword. abs: {absolute_threshold}, relative: {relative_threshold}')
+
+
+    def query(self, data_item):
+        question = data_item["question"]
+        all_chunks = data_item["topk_content"]
+        n = len(all_chunks)
+
+        # 1) Assign geometric weights to chunks: gamma^i
+        weights = np.array([self.gamma ** i for i in range(n)])
+        weights /= weights.sum()  # normalize
+
+        # 2) First-stage sampling: sample multiple subsets & query LLM
+        sampled_responses = []
+        total_weight = 0
+        total_weight_orig = 0
+
+        for i in range(self.num_samples):
+            indices = np.random.choice(
+                n,
+                size=min(self.sample_size, n),
+                replace=False,
+                p=weights
+            )
+            sampled_chunks = [all_chunks[j] for j in indices]
+            chunk_weight = weights[indices].sum()
+            prompt = self.build_prompt(question, sampled_chunks)
+            response = self.llm.query(prompt)
+
+            if "I don't" not in response:
+                sampled_responses.append((response, chunk_weight))
+                total_weight += chunk_weight
+                total_weight_orig += 1
+
+        logger.debug(f"Sampled responses:\n{sampled_responses}")
+
+        if len(sampled_responses) < self.abstention_threshold:
+            logger.warning("Abstain from making response...")
+            return "I don't know."
+
+        # 3) Keyword aggregation
+        token_counter = defaultdict(int)
+        all_extracted_phrase = []
+
+        for response, weight in sampled_responses:
+            doc = self.keyword_extractor(response)
+            phrase_list = [response.strip()]
+            tmp = []
+
+            for token in doc:
+                if token.pos_ in self.ignore_set:
+                    if len(tmp) > 0:
+                        phrase = ''.join([x.lemma_ + x.whitespace_ for x in tmp]).strip()
+                        phrase_list.append(phrase)
+                        phrase_list += [x.lemma_ for x in tmp]
+                        tmp = []
+                else:
+                    tmp.append(token)
+
+            phrase = ''.join([x.lemma_ + x.whitespace_ for x in tmp]).strip()
+            phrase_list.append(phrase)
+            phrase_list += [x.lemma_ for x in tmp]
+            phrase_list = set(phrase_list)
+
+            all_extracted_phrase.append(phrase_list)
+            for phrase in phrase_list:
+                token_counter[phrase] += weight * total_weight_orig / total_weight
+
+        # Filtering
+        print(phrase_list)
+        count_threshold = min(self.absolute, self.relative * len(sampled_responses))
+        for token, count in list(token_counter.items()):
+            if (count < count_threshold) or (token in punctuation) or (token in stopword_set):
+                del token_counter[token]
+
+        # Generate keyword-based final query
+        sorted_tokens = sorted(token_counter.items(), key=lambda x: (len(x[0]), x[0]), reverse=True)
+        hints = ', '.join([token for token, _ in sorted_tokens])
+        logger.debug("Sorted tokens for hints:")
+        logger.debug(sorted_tokens)
+        hint_prompt = self.llm.wrap_prompt(data_item, as_multi_choice=False, hints=hints)
+        logger.debug(f'Hint prompt:\n{hint_prompt}')
+        final_response = self.llm.query(hint_prompt)
+
+        logger.debug(f"Final response:\n{final_response}")
+        return final_response
+
+    def build_prompt(self, question, chunks):
+        context_text = "\n\n".join(chunks)
+        return f"""
+        Given the context information below and not prior knowledge, answer the query with only keywords.
+        If there is no relevant information, just say "I don't know".\n\n
+        Context:\n
+        {context_text}\n\n
+        Query: {question}\n
+        Answer:
+        """

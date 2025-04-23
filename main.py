@@ -32,12 +32,12 @@ def parse_args():
     parser.add_argument('--attackpos', type=int, default=0, help='The position of the attack in the top-k retrieval (0-indexed)')
 
     # defense
-    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding', 'sampling', 'astuterag','instructrag_icl','graph','MIS'],help='The defense method to use')
+    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding', 'sampling', 'astuterag','instructrag_icl','graph','MIS', 'sampling_keyword',],help='The defense method to use')
     parser.add_argument('--alpha', type=float, default=0.3, help='keyword filtering threshold alpha')
     parser.add_argument('--beta', type=float, default=3.0, help='keyword filtering threshold beta')
     parser.add_argument('--eta', type=float, default=0.0, help='decoding confidence threshold eta')
-    parser.add_argument('--T', type=int, default=3, help='number of samples for sampling method')
-    parser.add_argument('--m', type=int, default=5, help='number of docs per sample for sampling method')
+    parser.add_argument('--T', type=int, default=10, help='number of samples for sampling method')
+    parser.add_argument('--m', type=int, default=1, help='number of docs per sample for sampling method')
     parser.add_argument('--gamma', type=float, default=1.0, help='weight discount factor for reliability-aware methods (between 0 and 1)')
 
     # long gen certifcation # not really used in the paper
@@ -86,7 +86,9 @@ def main():
         llm = create_model(args.model_name,args.model_dir, args.use_open_model_api, cache_path=cache_path)
         longgen = False
  
-    if args.defense_method == 'voting': # weighted majority voting
+    if args.defense_method == 'none': # no defense
+        model = RRAG(llm)
+    elif args.defense_method == 'voting': # weighted majority voting
         assert 'mc' in args.dataset_name
         model = WeightedMajorityVoting(llm)
     elif args.defense_method == 'keyword': # weighted keyword aggregation
@@ -105,6 +107,16 @@ def main():
             sample_size=args.m,
             num_samples=args.T,
             gamma=args.gamma,
+        )
+    elif args.defense_method == "sampling_keyword":
+        model = SamplingWithKeyWordAggregation(
+            llm=llm,
+            sample_size=args.m,
+            num_samples=args.T,
+            gamma=args.gamma,
+            relative_threshold=args.alpha,
+            absolute_threshold=args.beta,
+            abstention_threshold=1,
         )
     elif args.defense_method == 'instructrag_icl':
         model = InstructRAG_ICL(llm)
@@ -183,7 +195,7 @@ def main():
             llm.reset_token_count()
             if args.defense_method == "none":
                 response = model.query_undefended(data_item)
-            elif args.defense_method in ["graph", "MIS", "astuterag", "instructrag_icl", "voting", "keyword", "decoding", "sampling"]:
+            elif args.defense_method in ["graph", "MIS", "astuterag", "instructrag_icl", "voting", "keyword", "decoding", "sampling", "sampling_keyword"]:
                 response = model.query(data_item)
             else:
                 raise NotImplementedError(f"Defense method {args.defense_method} is not implemented.")
