@@ -225,7 +225,8 @@ class VLLMModel(BaseModel):
             model=model_dir + model_name,
             tokenizer=model_dir + model_name,
             max_model_len=20000,
-            dtype="float16",
+            dtype="bfloat16",
+            gpu_memory_utilization=0.5,
             **kwargs
         )
         self.tokenizer = self.llm.get_tokenizer()
@@ -233,7 +234,6 @@ class VLLMModel(BaseModel):
         self.sampling_params = SamplingParams(
             max_tokens=self.max_output_tokens,
             temperature=1.0,
-            stop_token_ids=[self.tokenizer.eos_token_id, self.tokenizer.convert_tokens_to_ids("<|eot_id|>")],
             seed=seed,
         )
         
