@@ -22,7 +22,8 @@ import json
 import time
 import joblib
 from .prompt_template import *
-MAX_NEW_TOKENS = 1024
+MAX_NEW_TOKENS = 50
+# MAX_NEW_TOKENS = 1024
 CONTEXT_MAX_TOKENS = {'Mistral-7B-Instruct-v0.2': 8192, 
                       'Llama-3.2-3B-Instruct': 4096, 
                       'Llama-3.2-1B-Instruct': 4096, 
@@ -42,6 +43,7 @@ def create_model(model_name, model_dir, use_open_model_api=True, **kwargs):
             return VLLMModel('DeepSeek-R1-Distill-Qwen-7B',model_dir,DEEPSEEK_TMPL,**kwargs)
         elif model_name == 'llama3b':
             return VLLMModel('Llama-3.2-3B-Instruct',model_dir,LLAMA_TMPL,**kwargs) 
+            # return HFModel('Llama-3.2-3B-Instruct',model_dir,LLAMA_TMPL,**kwargs)
         elif model_name == 'llama1b':
             return VLLMModel('Llama-3.2-1B-Instruct',model_dir,LLAMA_TMPL,**kwargs) 
         elif model_name == 'llama8b':
@@ -223,18 +225,10 @@ class VLLMModel(BaseModel):
 
         self.llm = LLM(
             model=model_dir + model_name,
-            tokenizer=model_dir + model_name,
-            max_model_len=20000,
-            dtype="bfloat16",
-            gpu_memory_utilization=0.5,
-            **kwargs
+            gpu_memory_utilization=0.6
         )
-        self.tokenizer = self.llm.get_tokenizer()
-
         self.sampling_params = SamplingParams(
-            max_tokens=self.max_output_tokens,
-            temperature=1.0,
-            seed=seed,
+            temperature=0
         )
         
         self.clean_str = ['\n\n']
@@ -344,7 +338,7 @@ class GPTModel(BaseModel):
         super().__init__(cache_path)
         self.model_name = model_name
         self.prompt_template = prompt_template
-        self.temperature = 1.0
+        self.temperature = 0.0
         self.max_output_tokens = MAX_NEW_TOKENS if max_output_tokens is None else max_output_tokens
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
 
@@ -412,7 +406,7 @@ class TogetherAIModel(BaseModel):
         super().__init__(cache_path)
         self.model_name = model_name
         self.prompt_template = prompt_template
-        self.temperature = 1.0
+        self.temperature = 0.0
         self.max_output_tokens = MAX_NEW_TOKENS if max_output_tokens is None else max_output_tokens
 
         self.client = Together(api_key=os.getenv("TOGETHER_API_KEY", ""))

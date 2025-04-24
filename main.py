@@ -10,6 +10,7 @@ from src.defense import *
 from src.baselines import *
 from src.attack import *
 from src.helper import get_log_name
+from src.sampleMIS import *
 import matplotlib.pyplot as plt
 import pandas as pd
 from llm_judge import LLMJudge
@@ -22,7 +23,7 @@ def parse_args():
     # LLM settings
     parser.add_argument("--local_rank", type=int, default=0, help="Local rank passed from distributed launcher")
     parser.add_argument('--model_name', type=str, default='mistral7b',choices=['mistral7b', 'llama3b', 'gpt-4o', 'o1-mini', 'deepseek7b', 'llama1b', 'tai_llama8b','tai_mistral7b'],help='model name')
-    parser.add_argument('--dataset_name', type=str, default='realtimeqa',choices=['realtimeqa-mc','realtimeqa','open_nq','biogen', 'simpleqa'],help='dataset name')
+    parser.add_argument('--dataset_name', type=str, default='realtimeqa',choices=['realtimeqa-mc','realtimeqa','open_nq','biogen', 'simpleqa', 'triviaqa'],help='dataset name')
     parser.add_argument('--model_dir', type=str, help='directory for huggingface models')
     parser.add_argument('--rep', type=int, default=1, help='number of times to repeat querying')
     parser.add_argument('--top_k', type=int, default=10,help='top k retrieval')
@@ -32,7 +33,11 @@ def parse_args():
     parser.add_argument('--attackpos', type=int, default=0, help='The position of the attack in the top-k retrieval (0-indexed)')
 
     # defense
-    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding', 'sampling', 'astuterag','instructrag_icl','graph','MIS', 'sampling_keyword',],help='The defense method to use')
+<<<<<<< Updated upstream
+    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding', 'sampling', 'astuterag','instructrag_icl','graph','MIS', 'sampling_keyword', 'sampleMIS'],help='The defense method to use')
+=======
+    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding', 'sampling', 'astuterag','instructrag_icl','graph','MIS','sampleMIS'],help='The defense method to use')
+>>>>>>> Stashed changes
     parser.add_argument('--alpha', type=float, default=0.3, help='keyword filtering threshold alpha')
     parser.add_argument('--beta', type=float, default=3.0, help='keyword filtering threshold beta')
     parser.add_argument('--eta', type=float, default=0.0, help='decoding confidence threshold eta')
@@ -122,6 +127,8 @@ def main():
         model = InstructRAG_ICL(llm)
     elif args.defense_method == 'astuterag':
         model = AstuteRAG(llm)
+    elif args.defense_method == "sampleMIS":
+        model = SampleMISRRAG(llm, sample_size=args.m, num_samples=args.T, gamma=args.gamma)
 
     no_attack = args.attack_method == 'none' or args.top_k<=0 # do not run attack
 
@@ -195,7 +202,7 @@ def main():
             llm.reset_token_count()
             if args.defense_method == "none":
                 response = model.query_undefended(data_item)
-            elif args.defense_method in ["graph", "MIS", "astuterag", "instructrag_icl", "voting", "keyword", "decoding", "sampling", "sampling_keyword"]:
+            elif args.defense_method in ["graph", "MIS", "astuterag", "instructrag_icl", "voting", "keyword", "decoding", "sampling", "sampling_keyword", "sampleMIS"]:
                 response = model.query(data_item)
             else:
                 raise NotImplementedError(f"Defense method {args.defense_method} is not implemented.")
