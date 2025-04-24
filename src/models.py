@@ -22,7 +22,7 @@ import json
 import time
 import joblib
 from .prompt_template import *
-MAX_NEW_TOKENS = 1024
+MAX_NEW_TOKENS = 20
 CONTEXT_MAX_TOKENS = {'Mistral-7B-Instruct-v0.2': 8192, 
                       'Llama-3.2-3B-Instruct': 4096, 
                       'Llama-3.2-1B-Instruct': 4096, 
@@ -51,9 +51,9 @@ def create_model(model_name, model_dir, use_open_model_api=True, **kwargs):
         elif model_name == 'mixtral8x7b':
             return VLLMModel('Mixtral-8x7B-Instruct-v0.1',model_dir,MISTRAL_TMPL,**kwargs)
         elif model_name == 'o1-mini':
-            return VLLMModel('o1-mini', GPT_TMPL, **kwargs) 
+            return GPTModel('o1-mini', GPT_TMPL, **kwargs) 
         elif model_name == 'gpt-4o':
-            return VLLMModel('gpt-4o', GPT_TMPL, **kwargs) 
+            return GPTModel('gpt-4o', GPT_TMPL, **kwargs) 
         else:
             raise NotImplementedError
     else:
