@@ -193,10 +193,10 @@ class MISBasedRRAG(RRAG):
 
         for i in range(k):
             for j in range(i + 1, k):
-                # premise = f"The answer to the question: {data_item['question']}\nis {seperate_responses[i]}."
-                # hypothesis = f"The answer to the question: {data_item['question']}\nis {seperate_responses[j]}."
-                premise = docs[i]
-                hypothesis = docs[j]
+                premise = f"The answer to the question: {data_item['question']}\nis {seperate_responses[i]}."
+                hypothesis = f"The answer to the question: {data_item['question']}\nis {seperate_responses[j]}."
+                # premise = docs[i]
+                # hypothesis = docs[j]
                 premises.append(premise)
                 hypotheses.append(hypothesis)
                 pair_indices.append((i, j))
@@ -211,11 +211,11 @@ class MISBasedRRAG(RRAG):
             # For each pair, add an undirected edge if the answers contradict.
             for idx, (i, j) in enumerate(pair_indices):
                 contradiction_probability = probs[idx][2].item()
-                # if (contradiction_probability >= 0.5 and "I don't know" not in seperate_responses[i] and "I don't know" not in seperate_responses[j]):
-                logger.info(docs[i])
-                logger.info(docs[j])
-                logger.info(contradiction_probability)
-                if contradiction_probability >= 0.5:
+                if (contradiction_probability >= 0.5 and "I don't know" not in seperate_responses[i] and "I don't know" not in seperate_responses[j]):
+                # logger.info(docs[i])
+                # logger.info(docs[j])
+                # logger.info(contradiction_probability)
+                # if contradiction_probability >= 0.5:
                     graph[i].add(j)
                     graph[j].add(i)
         

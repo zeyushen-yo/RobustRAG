@@ -78,21 +78,21 @@ exp_list = [
 ]
 
 new_exp_list = [
-    "open_nq-llama3b-astuterag-rep5-top10-attacknone",
-    "open_nq-llama3b-astuterag-rep5-top10-attackPIA",
-    "open_nq-llama3b-astuterag-rep5-top10-attackPoison",
+    # "open_nq-llama3b-astuterag-rep5-top10-attacknone",
+    # "open_nq-llama3b-astuterag-rep5-top10-attackPIA",
+    # "open_nq-llama3b-astuterag-rep5-top10-attackPoison",
 
-    "open_nq-llama3b-instructrag_icl-rep5-top10-attacknone",
-    "open_nq-llama3b-instructrag_icl-rep5-top10-attackPIA",
-    "open_nq-llama3b-instructrag_icl-rep5-top10-attackPoison",
+    # "open_nq-llama3b-instructrag_icl-rep5-top10-attacknone",
+    # "open_nq-llama3b-instructrag_icl-rep5-top10-attackPIA",
+    # "open_nq-llama3b-instructrag_icl-rep5-top10-attackPoison",
 
-    "open_nq-mistral7b-astuterag-rep5-top10-attacknone",
-    #"open_nq-mistral7b-astuterag-rep5-top10-attackPIA",
-    "open_nq-mistral7b-astuterag-rep5-top10-attackPoison",
+    # "open_nq-mistral7b-astuterag-rep5-top10-attacknone",
+    # #"open_nq-mistral7b-astuterag-rep5-top10-attackPIA",
+    # "open_nq-mistral7b-astuterag-rep5-top10-attackPoison",
 
-    "open_nq-mistral7b-instructrag_icl-rep5-top10-attacknone",
-    "open_nq-mistral7b-instructrag_icl-rep5-top10-attackPIA",
-    "open_nq-mistral7b-instructrag_icl-rep5-top10-attackPoison",
+    # "open_nq-mistral7b-instructrag_icl-rep5-top10-attacknone",
+    # "open_nq-mistral7b-instructrag_icl-rep5-top10-attackPIA",
+    # "open_nq-mistral7b-instructrag_icl-rep5-top10-attackPoison",
 ]
 
 dataset_size = {
