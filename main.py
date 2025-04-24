@@ -23,7 +23,7 @@ def parse_args():
     # LLM settings
     parser.add_argument("--local_rank", type=int, default=0, help="Local rank passed from distributed launcher")
     parser.add_argument('--model_name', type=str, default='mistral7b',choices=['mistral7b', 'llama3b', 'gpt-4o', 'o1-mini', 'deepseek7b', 'llama1b', 'tai_llama8b','tai_mistral7b'],help='model name')
-    parser.add_argument('--dataset_name', type=str, default='realtimeqa',choices=['realtimeqa-mc','realtimeqa','open_nq','biogen', 'simpleqa', 'triviaqa'],help='dataset name')
+    parser.add_argument('--dataset_name', type=str, default='realtimeqa',choices=['realtimeqa-mc','realtimeqa','open_nq','biogen', 'simpleqa', 'triviaqa', 'simpleqa_sorted', 'realtimeqa_sorted', 'triviaqa_sorted', 'open_nq_sorted', 'simpleqa_sorted_answer_based', 'realtimeqa_allrel'],help='dataset name')
     parser.add_argument('--model_dir', type=str, help='directory for huggingface models')
     parser.add_argument('--rep', type=int, default=1, help='number of times to repeat querying')
     parser.add_argument('--top_k', type=int, default=10,help='top k retrieval')
@@ -33,11 +33,7 @@ def parse_args():
     parser.add_argument('--attackpos', type=int, default=0, help='The position of the attack in the top-k retrieval (0-indexed)')
 
     # defense
-<<<<<<< Updated upstream
     parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding', 'sampling', 'astuterag','instructrag_icl','graph','MIS', 'sampling_keyword', 'sampleMIS'],help='The defense method to use')
-=======
-    parser.add_argument('--defense_method', type=str, default='keyword',choices=['none','voting','keyword','decoding', 'sampling', 'astuterag','instructrag_icl','graph','MIS','sampleMIS'],help='The defense method to use')
->>>>>>> Stashed changes
     parser.add_argument('--alpha', type=float, default=0.3, help='keyword filtering threshold alpha')
     parser.add_argument('--beta', type=float, default=3.0, help='keyword filtering threshold beta')
     parser.add_argument('--eta', type=float, default=0.0, help='decoding confidence threshold eta')
@@ -80,7 +76,7 @@ def main():
 
     if args.use_cache: # use/save cached responses from LLM
         os.makedirs(f'cache/',exist_ok=True)
-        cache_path = f'cache/{args.model_name}-{args.dataset_name}-{args.top_k}.z'
+        cache_path = f'cache/{args.model_name}.z'
     else:
         cache_path = None
 
