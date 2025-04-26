@@ -124,7 +124,7 @@ class DataUtils: # base class for dataset
         self.top_k = top_k
         self.grader = SandboxGrader("gpt-4o")
 
-    def process_data_item(self,data_item,top_k=None,include_title=True,add_expanded_answer=True):
+    def process_data_item(self,data_item,top_k=None,include_title=False,add_expanded_answer=True):
         # extract necessary information from raw json file
         top_k = self.top_k if top_k is None else top_k
         question = data_item['question']

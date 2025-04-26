@@ -1,0 +1,3 @@
+rep_idx,acc,asr,initial_acc,initial_asr,input_tokens,output_tokens,total_time_sec,defense_method,gamma,attack_method,attackpos,model_name,dataset_name,dataset_size
+0,0.478,0.108,0.478,0.108,5108052,123147,378.44,sampleMIS,0.8,PIA,9,llama3b,simpleqa,500
+0,0.544,0.09,0.546,0.09,3882397,79517,253.91,sampleMIS,0.8,PIA,9,llama3b,simpleqa,500
