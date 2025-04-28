@@ -525,12 +525,12 @@ class RandomSamplingReQueryAgg(RRAG):
         self.num_samples = num_samples
         self.gamma = gamma
 
-        self.use_openai = True
+        self.use_openai = False
         self.openai_model = "text-embedding-ada-002"
         self.hf_model_name = "/scratch/gpfs/bi0600/all-mpnet-base-v2"
 
         if not self.use_openai:
-            self.hf_model = SentenceTransformer( self.hf_model_name)
+            self.hf_model = SentenceTransformer(self.hf_model_name)
         else:
             self.client = OpenAI()
 
@@ -638,8 +638,6 @@ class SamplingWithKeyWordAggregation(RRAG):
 
         # 2) First-stage sampling: sample multiple subsets & query LLM
         sampled_responses = []
-        total_weight = 0
-        total_weight_orig = 0
 
         for i in range(self.num_samples):
             indices = np.random.choice(
@@ -649,14 +647,11 @@ class SamplingWithKeyWordAggregation(RRAG):
                 p=weights
             )
             sampled_chunks = [all_chunks[j] for j in indices]
-            chunk_weight = weights[indices].sum()
             prompt = self.build_prompt(question, sampled_chunks)
             response = self.llm.query(prompt)
 
             if "I don't" not in response:
-                sampled_responses.append((response, chunk_weight))
-                total_weight += chunk_weight
-                total_weight_orig += 1
+                sampled_responses.append(response)
 
         logger.debug(f"Sampled responses:\n{sampled_responses}")
 
@@ -668,7 +663,7 @@ class SamplingWithKeyWordAggregation(RRAG):
         token_counter = defaultdict(int)
         all_extracted_phrase = []
 
-        for response, weight in sampled_responses:
+        for response in sampled_responses:
             doc = self.keyword_extractor(response)
             phrase_list = [response.strip()]
             tmp = []
@@ -690,7 +685,7 @@ class SamplingWithKeyWordAggregation(RRAG):
 
             all_extracted_phrase.append(phrase_list)
             for phrase in phrase_list:
-                token_counter[phrase] += weight * total_weight_orig / total_weight
+                token_counter[phrase] += 1
 
         # Filtering
         print(phrase_list)

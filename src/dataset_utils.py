@@ -243,7 +243,7 @@ def load_data(dataset_name,top_k,data_path=None):
     data_path = data_path if data_path else f'data/{dataset_name.split("-")[0]}.json'
     if dataset_name == 'realtimeqa-mc':
         return RealtimeQA(data_path,top_k,as_multi_choices=True)
-    elif dataset_name in ['realtimeqa', 'realtimeqa_allrel']:
+    elif dataset_name in ['realtimeqa', 'realtimeqa_allrel', 'realtimeqa_allrel_perturb']:
         return RealtimeQA(data_path,top_k,as_multi_choices=False)
     elif dataset_name == 'open_nq':
         return NQ(data_path,top_k,as_multi_choices=False)
