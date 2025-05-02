@@ -14,6 +14,7 @@ output_old
 figs_accuracy
 figs_robustness
 figs_pareto
+figs_pareto_old
 figs
 scripts/all_cpu.slurm
 scripts/run_cpu.sh

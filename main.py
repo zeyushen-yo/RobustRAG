@@ -22,8 +22,8 @@ def parse_args():
 
     # LLM settings
     parser.add_argument("--local_rank", type=int, default=0, help="Local rank passed from distributed launcher")
-    parser.add_argument('--model_name', type=str, default='mistral7b',choices=['mistral7b', 'llama3b', 'gpt-4o', 'o1-mini', 'deepseek7b', 'llama1b', 'tai_llama8b','tai_mistral7b'],help='model name')
-    parser.add_argument('--dataset_name', type=str, default='realtimeqa',choices=['realtimeqa-mc','realtimeqa','open_nq','biogen', 'simpleqa', 'triviaqa', 'simpleqa_sorted', 'realtimeqa_sorted', 'triviaqa_sorted', 'open_nq_sorted', 'simpleqa_sorted_answer_based', 'realtimeqa_allrel'],help='dataset name')
+    parser.add_argument('--model_name', type=str, default='mistral7b',choices=['mistral7b', 'llama3b', 'gpt-4o', 'gpt-4o-mini', 'o1-mini', 'deepseek7b', 'llama1b', 'tai_llama8b','tai_mistral7b'],help='model name')
+    parser.add_argument('--dataset_name', type=str, default='realtimeqa',choices=['triviaqa_sorted_answer_based', 'open_nq_sorted_answer_based', 'realtimeqa_sorted_answer_based', 'realtimeqa-mc','realtimeqa','open_nq','biogen', 'simpleqa', 'triviaqa', 'realtimeqa_reversed', 'triviaqa_reversed', 'open_nq_reversed', 'simpleqa_sorted', 'realtimeqa_sorted', 'triviaqa_sorted', 'open_nq_sorted', 'simpleqa_sorted_answer_based', 'realtimeqa_allrel'],help='dataset name')
     parser.add_argument('--model_dir', type=str, help='directory for huggingface models')
     parser.add_argument('--rep', type=int, default=1, help='number of times to repeat querying')
     parser.add_argument('--top_k', type=int, default=10,help='top k retrieval')
@@ -81,7 +81,7 @@ def main():
         cache_path = None
 
     if args.dataset_name == 'biogen':
-        llm = create_model(args.model_name,args.model_dir, args.use_open_model_api, max_output_tokens=500)
+        llm = create_model(args.model_name,args.model_dir, args.use_open_model_api, max_output_tokens=8192)
         longgen = True
     else:
         llm = create_model(args.model_name,args.model_dir, args.use_open_model_api, cache_path=cache_path)
@@ -204,6 +204,9 @@ def main():
                 raise NotImplementedError(f"Defense method {args.defense_method} is not implemented.")
             end_time = time.perf_counter()
             token_count = llm.get_token_count()
+            t = end_time - start_time
+            logger.info("time elapsed: ")
+            logger.info(t)
             
             # EVALUATE RESPONSE
             if args.defense_method in ['astuterag', 'instructrag_icl']:

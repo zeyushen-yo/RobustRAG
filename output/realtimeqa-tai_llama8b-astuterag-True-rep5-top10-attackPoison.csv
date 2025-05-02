@@ -1,3 +1,0 @@
-gamma,rank,undefended_acc,defended_acc,undefended_asr,defended_asr,undefended_input_tokens,undefended_output_tokens,defended_input_tokens,defended_output_tokens,undefended_total_time_sec,defended_total_time_sec
-1,0,0.0,0.514,0.0,0.138,0.0,0.0,115689.6,66819.8,0.0,793.74
-1,1,0.0,0.556,0.0,0.11,0.0,0.0,116368.2,67442.8,0.0,821.23

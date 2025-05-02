@@ -11,8 +11,8 @@ from pathlib import Path
 from typing import List
 
 # ----------------------------------------------------------------------
-IN_PATH  = Path("/home/zs7353/RobustRAG/data/simpleqa.json")
-OUT_PATH = Path("/home/zs7353/RobustRAG/data/simpleqa_sorted_answer_based.json")
+IN_PATH  = Path("/home/zs7353/RobustRAG/data/triviaqa.json")
+OUT_PATH = Path("/home/zs7353/RobustRAG/data/triviaqa_sorted_answer_based.json")
 # ----------------------------------------------------------------------
 
 

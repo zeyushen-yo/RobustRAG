@@ -1,64 +1,49 @@
-#!/usr/bin/env python3
-"""
-simpleqa_rerank_bge_v2.py
-Re-rank SimpleQA contexts with BGE-v2-m3 cross-encoder.
-Robust to context entries that lack a 'text' field.
-"""
-
-import json, unicodedata, sys, torch
+import json, sys, asyncio
 from pathlib import Path
-from tqdm import tqdm
-from sentence_transformers import CrossEncoder
+from tqdm.asyncio import tqdm as atqdm
+from mxbai_rerank import MxbaiRerankV2 
 
 # ----------------------------------------------------------------------
-IN_PATH  = Path("/home/zs7353/RobustRAG/data/open_nq.json")
-OUT_PATH = Path("/home/zs7353/RobustRAG/data/open_nq_sorted.json")
-MODEL_ID = "/scratch/gpfs/zs7353/bge-reranker-v2-m3"
-DEVICE   = "cuda" if torch.cuda.is_available() else "cpu"
+IN_PATH  = Path("/home/zs7353/RobustRAG/data/realtimeqa.json")
+OUT_PATH = Path("/home/zs7353/RobustRAG/data/realtimeqa_sorted.json")
+MODEL_ID = "/scratch/gpfs/zs7353/mxbai-rerank-large-v2"
 # ----------------------------------------------------------------------
 
 
 def passage_text(ctx) -> str:
-    """Return a string for scoring, regardless of context entry format."""
     if isinstance(ctx, dict):
-        if ctx.get("text"):                      # preferred field
+        if ctx.get("text"):
             return ctx["text"]
-        # graceful fallback: concatenate whatever is available
-        title = ctx.get("title", "")
-        link  = ctx.get("link", "")
-        return f"{title} {link}".strip()
-    return str(ctx) if ctx is not None else ""   # raw string / other
+        return (ctx.get("title", "") + " " + ctx.get("link", "")).strip()
+    return str(ctx) if ctx is not None else ""
 
 
-def normalize(text: str) -> str:  # optional utility, not used here
-    return unicodedata.normalize("NFKC", text).lower()
-
-
-def main() -> None:
+def main():
     if not IN_PATH.exists():
-        sys.exit(f"Input file not found: {IN_PATH}")
+        sys.exit(f"Input not found: {IN_PATH}")
 
     data = json.loads(IN_PATH.read_text())
 
-    reranker = CrossEncoder(MODEL_ID, device=DEVICE, max_length=512)
+    model = MxbaiRerankV2(
+        MODEL_ID
+    )
 
-    for item in tqdm(data, desc="reranking"):
-        q = item["question"]
-        passages = [passage_text(c) for c in item["context"]]
-        if len(passages) == 0:
+    for item in atqdm(data, desc="reranking"):
+        query = item["question"]
+        docs  = [passage_text(c) for c in item["context"]]
+        if not docs:
             continue
-        scores = reranker.predict(
-            [(q, p) for p in passages],
-            convert_to_numpy=True,
-            show_progress_bar=False,
+
+        ranked = model.rank(
+            query,
+            docs,
+            top_k=len(docs),
+            return_documents=False,
+            sort=True,
         )
-        # sort contexts by score ↓
-        item["context"] = [
-            ctx
-            for _, ctx in sorted(
-                zip(scores, item["context"]), key=lambda x: x[0], reverse=True
-            )
-        ]
+
+        # reorder the original context list
+        item["context"] = [item["context"][r.index] for r in ranked]
 
     OUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUT_PATH.write_text(json.dumps(data, indent=2, ensure_ascii=False))

@@ -6,6 +6,7 @@ from .helper import StopOnTokens
 #import deepspeed
 from together import Together
 from vllm import LLM, SamplingParams
+from openai import AzureOpenAI
 
 
 from torch import LongTensor, FloatTensor
@@ -22,10 +23,14 @@ import json
 import time
 import joblib
 from .prompt_template import *
+
+# for question-answering
 MAX_NEW_TOKENS = 50
-# MAX_NEW_TOKENS = 1024
+
+# for biogen
+# MAX_NEW_TOKENS = 8192
 CONTEXT_MAX_TOKENS = {'Mistral-7B-Instruct-v0.2': 8192, 
-                      'Llama-3.2-3B-Instruct': 4096, 
+                      'Llama-3.2-3B-Instruct': 8192, 
                       'Llama-3.2-1B-Instruct': 4096, 
                       'Llama-3.1-8B-Instruct': 8192, 
                       'Mixtral-8x7B-Instruct-v0.1': 32000,
@@ -56,6 +61,8 @@ def create_model(model_name, model_dir, use_open_model_api=True, **kwargs):
             return GPTModel('o1-mini', GPT_TMPL, **kwargs) 
         elif model_name == 'gpt-4o':
             return GPTModel('gpt-4o', GPT_TMPL, **kwargs) 
+        elif model_name == 'gpt-4o-mini':
+            return GPTModel('gpt-4o-mini', GPT_TMPL, **kwargs) 
         else:
             raise NotImplementedError
     else:
@@ -67,6 +74,8 @@ def create_model(model_name, model_dir, use_open_model_api=True, **kwargs):
             return GPTModel('o1-mini', GPT_TMPL, **kwargs) 
         elif model_name == 'gpt-4o':
             return GPTModel('gpt-4o', GPT_TMPL, **kwargs) 
+        elif model_name == 'gpt-4o-mini':
+            return GPTModel('gpt-4o-mini', GPT_TMPL, **kwargs) 
         else:
             raise NotImplementedError
 
@@ -225,9 +234,10 @@ class VLLMModel(BaseModel):
 
         self.llm = LLM(
             model=model_dir + model_name,
-            gpu_memory_utilization=0.6
+            gpu_memory_utilization=0.5
         )
         self.sampling_params = SamplingParams(
+            # max_tokens=500,
             temperature=0
         )
         
@@ -342,60 +352,104 @@ class GPTModel(BaseModel):
         self.max_output_tokens = MAX_NEW_TOKENS if max_output_tokens is None else max_output_tokens
         self.client = OpenAI(api_key=os.getenv("OPENAI_API_KEY", ""))
 
-    def _query(self, prompt): 
+    # def _query(self, prompt): 
+    #     try:
+    #         if self.model_name == "o3-mini" or self.model_name == "o1-mini" or self.model_name == "o1":
+    #             chat = self.client.chat.completions.create(
+    #                 model=self.model_name,
+    #                 messages=[
+    #                     {"role": "system", "content": "You are a helpful assistant."},
+    #                     {"role": "user", "content": prompt}
+    #                 ],
+    #                 max_completion_tokens=self.max_output_tokens
+    #             )   
+    #         else:
+    #             chat = self.client.chat.completions.create(
+    #                 model=self.model_name,
+    #                 messages=[
+    #                     {"role": "system", "content": "You are a helpful assistant."},
+    #                     {"role": "user", "content": prompt}
+    #                 ],
+    #                 temperature=self.temperature,
+    #                 max_tokens=self.max_output_tokens
+    #             )
+    #         self.total_input_tokens += chat.usage.prompt_tokens
+    #         self.total_output_tokens += chat.usage.completion_tokens
+    #         response = chat.choices[0].message.content
+    #     except Exception as e:
+    #         print(e)
+    #         response = ""
+    #     return response
+
+    def _query(self, prompt: str) -> str:
+        fallback = "I don't know"
+
         try:
-            if self.model_name == "o3-mini" or self.model_name == "o1-mini" or self.model_name == "o1":
-                chat = self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=[
-                        {"role": "system", "content": "You are a helpful assistant."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    max_completion_tokens=self.max_output_tokens
-                )   
-            else:
-                chat = self.client.chat.completions.create(
-                    model=self.model_name,
-                    messages=[
-                        {"role": "system", "content": "You are a helpful assistant."},
-                        {"role": "user", "content": prompt}
-                    ],
-                    temperature=self.temperature,
-                    max_tokens=self.max_output_tokens
-                )
-            self.total_input_tokens += chat.usage.prompt_tokens
-            self.total_output_tokens += chat.usage.completion_tokens
-            response = chat.choices[0].message.content
-        except Exception as e:
-            print(e)
-            response = ""
-        return response
+            client = AzureOpenAI(
+                api_key=os.getenv("AI_SANDBOX_KEY", ""),
+                azure_endpoint="https://api-ai-sandbox.princeton.edu/",
+                api_version="2024-02-01",
+            )
+
+            messages = [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user",   "content": prompt},
+            ]
+
+            chat = client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                temperature=self.temperature,
+                max_tokens=self.max_output_tokens,
+            )
+
+            # ---- defensive checks -------------------------------------------
+            if chat is None or not chat.choices:
+                return fallback
+
+            content = chat.choices[0].message.content
+            if not content:                       # covers None or empty string
+                return fallback
+
+            # ---- token bookkeeping (only if usage is available) ------------
+            if getattr(chat, "usage", None):
+                self.total_input_tokens  += getattr(chat.usage, "prompt_tokens", 0)
+                self.total_output_tokens += getattr(chat.usage, "completion_tokens", 0)
+
+            return content
+
+        except Exception as exc:
+            print("Sandbox query failed:", exc)
+            return fallback
         
 
-    def _batch_query(self, prompt_list):
-        prompt_list_with_template = [
-            [
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": prompt}
-            ]
-            for prompt in prompt_list
-        ]
-        try:
-            result = batch_completion(
-                model=self.model_name,
-                messages=prompt_list_with_template,
-                max_tokens=self.max_output_tokens
-            )
-            self.total_input_tokens += sum(x.usage.prompt_tokens for x in result)
-            self.total_output_tokens += sum(x.usage.completion_tokens for x in result)
-            response_list = [x.choices[0].message.content for x in result]
-        except Exception as e:
-            print("Error during batch_completion:", e)
-            response_list = []
-            for prompt in prompt_list:
-                response_list.append(self._query(prompt))
+    # def _batch_query(self, prompt_list):
+    #     prompt_list_with_template = [
+    #         [
+    #             {"role": "system", "content": "You are a helpful assistant."},
+    #             {"role": "user", "content": prompt}
+    #         ]
+    #         for prompt in prompt_list
+    #     ]
+    #     try:
+    #         result = batch_completion(
+    #             model=self.model_name,
+    #             messages=prompt_list_with_template,
+    #             max_tokens=self.max_output_tokens
+    #         )
+    #         self.total_input_tokens += sum(x.usage.prompt_tokens for x in result)
+    #         self.total_output_tokens += sum(x.usage.completion_tokens for x in result)
+    #         response_list = [x.choices[0].message.content for x in result]
+    #     except Exception as e:
+    #         print("Error during batch_completion:", e)
+    #         response_list = []
+    #         for prompt in prompt_list:
+    #             response_list.append(self._query(prompt))
 
-        return response_list
+    #     return response_list
+
+    def _batch_query(self, prompt_list):
+        return [self._query(p) for p in prompt_list]
 
     def query_biogen(self, prompt):
         return self.query(prompt)

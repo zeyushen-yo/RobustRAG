@@ -6,6 +6,7 @@ from transformers import StoppingCriteriaList, MaxLengthCriteria, AutoTokenizer,
 from nltk.corpus import stopwords
 punctuation = '!"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~'
 stopword_set = set(stopwords.words('english'))
+import time
 
 import torch 
 from itertools import combinations
@@ -123,8 +124,7 @@ class GraphBasedRRAG(RRAG):
         remaining = set()
         # just don't take irrelevant docs? They are just noisy and useless
         for i in range(k):
-            if "I don't know" not in seperate_responses[i]:
-                remaining.add(i)
+            remaining.add(i)
         
         removal_occurred = True
         while removal_occurred:
@@ -187,16 +187,12 @@ class MISBasedRRAG(RRAG):
         
         # Build an undirected graph: graph[i] holds all vertices j that contradict with document i.
         graph = {i: set() for i in range(k)}
-        premises = []
-        hypotheses = []
-        pair_indices = []
+        premises, hypotheses, pair_indices = [], [], [] 
 
         for i in range(k):
             for j in range(i + 1, k):
                 premise = f"The answer to the question: {data_item['question']}\nis {seperate_responses[i]}."
                 hypothesis = f"The answer to the question: {data_item['question']}\nis {seperate_responses[j]}."
-                # premise = docs[i]
-                # hypothesis = docs[j]
                 premises.append(premise)
                 hypotheses.append(hypothesis)
                 pair_indices.append((i, j))
@@ -212,14 +208,11 @@ class MISBasedRRAG(RRAG):
             for idx, (i, j) in enumerate(pair_indices):
                 contradiction_probability = probs[idx][2].item()
                 if (contradiction_probability >= 0.5 and "I don't know" not in seperate_responses[i] and "I don't know" not in seperate_responses[j]):
-                # logger.info(docs[i])
-                # logger.info(docs[j])
-                # logger.info(contradiction_probability)
-                # if contradiction_probability >= 0.5:
                     graph[i].add(j)
                     graph[j].add(i)
         
         z = {i for i in range(k) if "I don't know" not in seperate_responses[i]}
+        # z = {i for i in range(k)}
         
         # Compute the maximum independent set over the vertices.
         # Among all maximum independent sets, choose the one with the lexicographically smallest order.

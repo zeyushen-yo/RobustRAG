@@ -86,13 +86,13 @@ class SampleMISRRAG(RRAG):
 
         for _ in range(self.num_samples):
             idxs = np.random.choice(
-                K, size=min(self.sample_size, K), replace=False, p=weights
+                K, size=min(self.sample_size, K), replace=True, p=weights
             )
             print(idxs)
 
             idxs_sorted = sorted(idxs)
-            subset_docs = [docs[i] for i in idxs_sorted]
-
+            subset_docs = list(reversed([docs[i] for i in idxs_sorted]))
+            # subset_docs = [docs[i] for i in idxs_sorted]
             sample_sets.append(subset_docs)
             ranks.append([i + 1 for i in idxs_sorted])            # 1‑based
             rank_tuples.append(tuple(i + 1 for i in idxs_sorted)) # tie‑break
@@ -108,6 +108,7 @@ class SampleMISRRAG(RRAG):
             )
 
         answers: List[str] = self.llm.batch_query(prompts)
+        print(answers)
 
         graph = {i: set() for i in range(self.num_samples)}
         premises, hypotheses, pairs = [], [], []
@@ -133,19 +134,14 @@ class SampleMISRRAG(RRAG):
                 logits = self.nli(**inputs).logits
             probs = torch.softmax(logits, dim=1)[:, 2]   # CONTRADICTION
             for p, (i, j) in zip(probs.tolist(), pairs):
-                if p >= self.thres and "i don't know" not in answers[i] and "i don't know" not in answers[j]:
+                if p >= self.thres and "I don't know" not in answers[i] and "I don't know" not in answers[j]:
                     graph[i].add(j)
                     graph[j].add(i)
 
         mis_set_idx = _max_independent_set_lex(graph, rank_tuples)
         logger.info(f"MIS set document indices: {mis_set_idx}")
-
-        # for single-hop cases, we could just output one of the responses?
-        # return answers[mis_set_idx[0]]
         
-        mis_doc_idxs = sorted(
-            {idx - 1 for s in mis_set_idx for idx in ranks[s] if "i don't know" not in answers[s]}
-        )
+        mis_doc_idxs = [idx - 1 for s in mis_set_idx for idx in ranks[s] if "I don't know" not in answers[s]]
         mis_docs = [docs[i] for i in mis_doc_idxs]
         logger.info(f"MIS document indices: {mis_doc_idxs}")
 

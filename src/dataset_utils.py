@@ -152,39 +152,39 @@ class DataUtils: # base class for dataset
     def wrap_prompt(self): 
         raise NotImplementedError
 
-    def eval_response(self,response,data_item): # eval the correctness of QA
-        answer = data_item['answer']
-        response = clean_str(response)
-        # if any answer is in the response, return true
-        print(answer, response)
-        for ans in answer:
-            if clean_str(ans) in response:
-                logger.debug('correct!')
-                return True 
-        return False
-
-    # def eval_response(self, response: str, data_item: dict) -> bool:
-    #     question = data_item["question"]
-
-    #     gold_answers: List[str] = data_item["answer"]
-    #     target = " | ".join(gold_answers)
-
-    #     print(gold_answers, response)
-
-    #     try:
-    #         grade_letter = self.grader.grade(question, target, response)
-    #     except Exception as e:
-    #         logger.warning(f"LLM grader failed: {e}")
-    #         return False
-
-    #     if grade_letter == "A":
-    #         logger.debug("LLM-judge: CORRECT")
-    #         return True
-    #     elif grade_letter == "B":
-    #         logger.debug("LLM-judge: INCORRECT")
-    #     else:
-    #         logger.debug("LLM-judge: NOT_ATTEMPTED")
+    # def eval_response(self,response,data_item): # eval the correctness of QA
+    #     answer = data_item['answer']
+    #     response = clean_str(response)
+    #     # if any answer is in the response, return true
+    #     print(answer, response)
+    #     for ans in answer:
+    #         if clean_str(ans) in response:
+    #             logger.debug('correct!')
+    #             return True 
     #     return False
+
+    def eval_response(self, response: str, data_item: dict) -> bool:
+        question = data_item["question"]
+
+        gold_answers: List[str] = data_item["answer"]
+        target = " | ".join(gold_answers)
+
+        print(gold_answers, response)
+
+        try:
+            grade_letter = self.grader.grade(question, target, response)
+        except Exception as e:
+            logger.warning(f"LLM grader failed: {e}")
+            return False
+
+        if grade_letter == "A":
+            logger.debug("LLM-judge: CORRECT")
+            return True
+        elif grade_letter == "B":
+            logger.debug("LLM-judge: INCORRECT")
+        else:
+            logger.debug("LLM-judge: NOT_ATTEMPTED")
+        return False
 
     def eval_response_asr(self,response,data_item): # eval if the targeted attack succeeds
         incorrect_answer = data_item['incorrect_answer']
@@ -232,7 +232,7 @@ class Biogen(DataUtils):
         super().__init__(data_path,top_k)
 
     def process_data_item(self,data_item,top_k=None):
-        ret = super().process_data_item(data_item,top_k)
+        ret = super().process_data_item(data_item,top_k, add_expanded_answer=False)
         ret.update({'long_gen':data_item.get('long_gen',False)}) # add a tag for long-form generation
         return ret 
 
