@@ -1,2 +1,2 @@
 rep_idx,acc,asr,initial_acc,initial_asr,input_tokens,output_tokens,total_time_sec,defense_method,gamma,attack_method,attackpos,model_name,dataset_name,dataset_size
-0,0.43,0.45,0.52,0.53,115588,120502,802.76,astuterag,1.0,Poison,9,llama3b,realtimeqa,100
+0,0.27,0.63,0.28,0.64,101483,3189,26.9,astuterag,1.0,Poison,9,llama3b,realtimeqa,100
