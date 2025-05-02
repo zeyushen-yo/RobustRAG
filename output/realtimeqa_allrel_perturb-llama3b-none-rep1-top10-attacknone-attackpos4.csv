@@ -1,0 +1,5 @@
+rep_idx,acc,asr,initial_acc,initial_asr,input_tokens,output_tokens,total_time_sec,defense_method,gamma,attack_method,attackpos,model_name,dataset_name,dataset_size
+0,0.73,0.0,0.73,0.0,78511,1368,10.62,none,1.0,none,4,llama3b,realtimeqa_allrel_perturb,100
+0,0.73,0.0,0.73,0.0,78511,1368,10.6,none,0.8,none,4,llama3b,realtimeqa_allrel_perturb,100
+0,0.73,0.0,0.73,0.0,78511,1355,10.52,none,1.0,none,4,llama3b,realtimeqa_allrel_perturb,100
+0,0.73,0.0,0.73,0.0,78511,1355,10.51,none,0.8,none,4,llama3b,realtimeqa_allrel_perturb,100
