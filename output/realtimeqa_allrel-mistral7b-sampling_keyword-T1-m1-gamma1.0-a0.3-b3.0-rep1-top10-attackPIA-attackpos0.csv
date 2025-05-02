@@ -1,2 +1,0 @@
-rep_idx,acc,asr,initial_acc,initial_asr,input_tokens,output_tokens,total_time_sec,defense_method,gamma,attack_method,attackpos,model_name,dataset_name,dataset_size
-0,0.45,0.1,0.45,0.1,52621,2931,34.88,sampling_keyword,1.0,PIA,0,mistral7b,realtimeqa_allrel,100
