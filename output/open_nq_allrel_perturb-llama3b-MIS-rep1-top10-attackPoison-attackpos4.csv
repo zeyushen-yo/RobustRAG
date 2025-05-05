@@ -1,0 +1,2 @@
+rep_idx,acc,asr,initial_acc,initial_asr,input_tokens,output_tokens,total_time_sec,defense_method,gamma,attack_method,attackpos,model_name,dataset_name,dataset_size
+0,0.69,0.04,0.69,0.04,3057437,80571,209.68,MIS,1.0,Poison,4,llama3b,open_nq_allrel_perturb,500

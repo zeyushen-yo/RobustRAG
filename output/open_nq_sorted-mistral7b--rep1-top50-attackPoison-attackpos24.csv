@@ -1,0 +1,2 @@
+rep_idx,acc,asr,initial_acc,initial_asr,input_tokens,output_tokens,total_time_sec,defense_method,gamma,attack_method,attackpos,model_name,dataset_name,dataset_size
+0,0.616,0.03,0.614,0.03,7480631,157995,345.56,sampleMIS,0.9,Poison,24,mistral7b,open_nq_sorted,500
