@@ -1,0 +1,16 @@
+defense	attack_position	accuracy
+Vanilla	0	0.4000
+Vanilla	24	0.2000
+Vanilla	49	0.0400
+AstuteRAG	0	0.2200
+AstuteRAG	24	0.1700
+AstuteRAG	49	0.1100
+Sampling+MIS	0	0.5200
+Sampling+MIS	24	0.6900
+Sampling+MIS	49	0.7000
+InstructRAG-ICL	0	0.2400
+InstructRAG-ICL	24	0.2700
+InstructRAG-ICL	49	0.1300
+RobustRAG (Keyword)	0	0.4800
+RobustRAG (Keyword)	24	0.5100
+RobustRAG (Keyword)	49	0.5100

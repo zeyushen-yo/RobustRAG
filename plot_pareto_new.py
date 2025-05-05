@@ -11,38 +11,60 @@ def get_metrics(df):
 
 plt.rcParams.update({'font.size': 14})
 
-
-
 plots = {
     "sampling_with_baselines": {
-        "datasets": ["realtimeqa", "realtimeqa_allrel"],
+        "datasets": ["realtimeqa", "realtimeqa_allrel", "realtimeqa_allrel_perturb"],
         "models": ["llama3b", "mistral7b"],
         "attack_positions": [0, 4, 9],
-        "attacks": ["PIA", "Poison", "none"],
+        "attacks": ["PIA", "Poison"],
         "defenses": [
             {"name": "none"},
+            {"name": "astuterag"},
+            {"name": "instructrag_icl"},
+            {"name": "MIS"},
             {"name": "keyword", "params": { "gamma": [0.8, 1.0],}},
-            #{"name": "sampling_keyword", "params": {"gamma": [0.8, 1.0],"T": [10],"m": [1]}}
+            {"name": "sampling_keyword", "params": {"gamma": [0.8, 1.0],"T": [10],"m": [1]}},
+            {"name": "sampling", "params": {"gamma": [0.8, 1.0],"T": [10],"m": [1]}},
         ],
     },
     #"sampling_keyword_m1_vary_t": {
-    #    "datasets": ["realtimeqa", "realtimeqa_allrel"],
-    #    "models": ["tai_mistral7b"],
-    #    "attack_positions": [0, 9],
-    #    "attacks": ["PIA", "Poison", "none"],
+    #    "datasets": ["realtimeqa", "realtimeqa_allrel", "realtimeqa_allrel_perturb"],
+    #    "models": ["llama3b", "mistral7b"],
+    #    "attack_positions": [0, 4, 9],
+    #    "attacks": ["PIA", "Poison"],
     #    "defenses": [
     #        {"name": "none"},
-    #        {"name": "sampling_keyword", "params": {"gamma": [0.8, 1.0],"T": [3, 5, 10],"m": [1]}}
+    #        {"name": "sampling_keyword", "params": {"gamma": [1.0],"T": [1, 3, 5, 10],"m": [1]}},
+    #    ],
+    #},
+    #"sampling_m1_vary_t": {
+    #    "datasets": ["realtimeqa", "realtimeqa_allrel", "realtimeqa_allrel_perturb"],
+    #    "models": ["llama3b", "mistral7b"],
+    #    "attack_positions": [0, 4, 9],
+    #    "attacks": ["PIA", "Poison"],
+    #    "defenses": [
+    #        {"name": "none"},
+    #        {"name": "sampling", "params": {"gamma": [1.0],"T": [1, 3, 5, 10],"m": [1]}},
     #    ],
     #},
     #"sampling_keyword_t10_vary_m": {
-    #    "datasets": ["realtimeqa", "realtimeqa_allrel"],
-    #    "models": ["tai_mistral7b"],
-    #    "attack_positions": [0, 9],
-    #    "attacks": ["PIA", "Poison", "none"],
+    #    "datasets": ["realtimeqa", "realtimeqa_allrel", "realtimeqa_allrel_perturb"],
+    #    "models": ["llama3b", "mistral7b"],
+    #    "attack_positions": [0, 4, 9],
+    #    "attacks": ["PIA", "Poison"],
     #    "defenses": [
     #        {"name": "none"},
-    #        {"name": "sampling_keyword", "params": {"gamma": [0.8, 1.0],"T": [10],"m": [1, 3, 5]}}
+    #        {"name": "sampling_keyword", "params": {"gamma": [1.0],"T": [10],"m": [1, 3, 5]}},
+    #    ],
+    #},
+    #"sampling_t10_vary_m": {
+    #    "datasets": ["realtimeqa", "realtimeqa_allrel", "realtimeqa_allrel_perturb"],
+    #    "models": ["llama3b", "mistral7b"],
+    #    "attack_positions": [0, 4, 9],
+    #    "attacks": ["PIA", "Poison"],
+    #    "defenses": [
+    #        {"name": "none"},
+    #        {"name": "sampling", "params": {"gamma": [1.0],"T": [10],"m": [1, 3, 5]}},
     #    ],
     #},
 }
@@ -131,11 +153,31 @@ for plot_name in plots:
                                                 all_dfs[key_readable] = pd.read_csv(file_path)
                                             else:
                                                 print(f"File not found: {file_path}")
+                            elif defense["name"] == "sampling":
+                                for gamma in defense["params"]["gamma"]:
+                                    for T in defense["params"]["T"]:
+                                        for m in defense["params"]["m"]:
+                                            key = f"{defense['name']}-{T}-{m}-gamma{gamma}"
+                                            key_readable = f"sampling (T={T},m={m}) ($\\gamma$={gamma})"
+                                            file_path = f"./output/{dataset}-{model}-{key}-rep1-top10-attack{attack}-attackpos{attack_position}.csv"
+                                            if os.path.exists(file_path):
+                                                all_dfs[key_readable] = pd.read_csv(file_path)
+                                            else:
+                                                print(f"File not found: {file_path}")
+                            elif defense["name"] in ["astuterag", "instructrag_icl", "MIS"]:
+                                key = f"{defense['name']}"
+                                key_readable = defense['name']
+                                file_path = f"./output/{dataset}-{model}-{key}-rep1-top10-attack{attack}-attackpos{attack_position}.csv"
+                                if os.path.exists(file_path):
+                                    all_dfs[key_readable] = pd.read_csv(file_path)
+                                else:
+                                    print(f"File not found: {file_path}")
 
 
                     all_plot_data = {}
                     for key, df in all_dfs.items():
-                        all_plot_data[key] = get_metrics(df)
+                        if len(df) > 0:
+                            all_plot_data[key] = get_metrics(df)
 
                     for (label, (acc, asr)) in all_plot_data.items():
                         if label not in key_marker_map:

@@ -20,3 +20,4 @@ scripts/all_cpu.slurm
 scripts/run_cpu.sh
 scripts/test.sh
 data/unfiltered-web-dev.json
+main_new.py

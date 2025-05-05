@@ -1,0 +1,16 @@
+defense	attack	attack_positionobustness
+Vanilla	PIA	1	0.3600
+Vanilla	PIA	25	0.6200
+Vanilla	PIA	50	0.8000
+AstuteRAG	PIA	1	0.3000
+AstuteRAG	PIA	25	0.2400
+AstuteRAG	PIA	50	0.3500
+Sampling+MIS	PIA	1	0.2200
+Sampling+MIS	PIA	25	0.0600
+Sampling+MIS	PIA	50	0.0100
+InstructRAG-ICL	PIA	1	0.7000
+InstructRAG-ICL	PIA	25	0.6200
+InstructRAG-ICL	PIA	50	0.7900
+RobustRAG (Keyword)	PIA	1	0.0600
+RobustRAG (Keyword)	PIA	25	0.0600
+RobustRAG (Keyword)	PIA	50	0.0500

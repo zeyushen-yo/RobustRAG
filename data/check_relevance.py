@@ -2,12 +2,25 @@ import json
 import numpy as np
 import matplotlib.pyplot as plt
 
+def init_plot_font_size():
+    SMALL_SIZE = 14
+    MEDIUM_SIZE = 18
+    BIGGER_SIZE = 20
+
+    plt.rc('font', size=MEDIUM_SIZE)
+    plt.rc('axes', titlesize=SMALL_SIZE)
+    plt.rc('axes', labelsize=SMALL_SIZE)
+    plt.rc('xtick', labelsize=SMALL_SIZE)
+    plt.rc('ytick', labelsize=SMALL_SIZE)
+    plt.rc('legend', fontsize=MEDIUM_SIZE)
+    plt.rc('figure', titlesize=MEDIUM_SIZE)
+
 def contains_answer(context_item, answers):
     title = context_item.get("title", "").lower()
     text = context_item.get("text", "").lower()
     return any(answer.lower() in title or answer.lower() in text for answer in answers)
 
-def compute_fraction_with_answer(dataset):
+def compute_fraction_with_answer(dataset, d, name):
     json_path = f"./{dataset}.json"
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
@@ -43,7 +56,8 @@ def compute_fraction_with_answer(dataset):
         cdf = np.arange(1, num_questions + 1) / num_questions * 100  # percentage
 
         # Plot CDF
-        plt.figure(figsize=(8, 5))
+        init_plot_font_size()
+        plt.figure(figsize=(6, 4))
         plt.plot(sorted_fracs, cdf, marker='o', linestyle='-')
 
         # Compute mean and median
@@ -56,26 +70,26 @@ def compute_fraction_with_answer(dataset):
         plt.plot([median_val, median_val], [0, 50], linestyle=':', color='blue')  # vertical part
         plt.text(median_val + 0.01, 5, f'Median = {median_val:.2f}', color='blue', rotation=90, va='bottom')
 
-        plt.title(f"CDF of Matching Context Fractions (n={len(data)})")
-        plt.xlabel("Fraction of Contexts with a Correct Answer")
-        plt.ylabel("Cumulative % of Questions")
+        plt.title(f"{name} (n={len(data)})")
+        plt.xlabel("Fraction of contexts with a correct answer")
+        plt.ylabel("Cumulative % of questions")
         plt.grid(True)
         plt.xlim([0, 1])
         plt.ylim([0, 100])
         plt.tight_layout()
-        plt.savefig(f"./{dataset}_relevance_dist.png")
+        plt.savefig(f"./fig_rel_dist/{d}/{dataset}_relevance_dist.png")
     else:
         print("No valid items to evaluate.")
 
-compute_fraction_with_answer("realtimeqa")
-compute_fraction_with_answer("open_nq")
-compute_fraction_with_answer("simpleqa")
-compute_fraction_with_answer("triviaqa")
-compute_fraction_with_answer("realtimeqa_allrel")
-compute_fraction_with_answer("open_nq_allrel")
-compute_fraction_with_answer("simpleqa_allrel")
-compute_fraction_with_answer("triviaqa_allrel")
-compute_fraction_with_answer("realtimeqa_allrel_perturb")
-compute_fraction_with_answer("open_nq_allrel_perturb")
-compute_fraction_with_answer("simpleqa_allrel_perturb")
-compute_fraction_with_answer("triviaqa_allrel_perturb")
+compute_fraction_with_answer("realtimeqa", d="orig", name="RQA")
+compute_fraction_with_answer("open_nq", d="orig", name="NQ")
+compute_fraction_with_answer("simpleqa", d="orig", name="SQA")
+compute_fraction_with_answer("triviaqa", d="orig", name="TQA")
+compute_fraction_with_answer("realtimeqa_allrel", d="allrel", name="RQA")
+compute_fraction_with_answer("open_nq_allrel", d="allrel", name="NQ")
+compute_fraction_with_answer("simpleqa_allrel", d="allrel", name="SQA")
+compute_fraction_with_answer("triviaqa_allrel", d="allrel", name="TQA")
+compute_fraction_with_answer("realtimeqa_allrel_perturb", d="allrel_perturb", name="RQA")
+compute_fraction_with_answer("open_nq_allrel_perturb", d="allrel_perturb", name="NQ")
+compute_fraction_with_answer("simpleqa_allrel_perturb", d="allrel_perturb", name="SQA")
+compute_fraction_with_answer("triviaqa_allrel_perturb", d="allrel_perturb", name="TQA")
