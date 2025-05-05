@@ -245,7 +245,7 @@ def load_data(dataset_name,top_k,data_path=None):
         return RealtimeQA(data_path,top_k,as_multi_choices=True)
     elif dataset_name in ['realtimeqa', 'realtimeqa_allrel', 'realtimeqa_allrel_perturb']:
         return RealtimeQA(data_path,top_k,as_multi_choices=False)
-    elif dataset_name == 'open_nq':
+    elif dataset_name in ['open_nq', 'open_nq_allrel_perturb']:
         return NQ(data_path,top_k,as_multi_choices=False)
     elif dataset_name == 'simpleqa':
         return SimpleQA(data_path,top_k,as_multi_choices=False)

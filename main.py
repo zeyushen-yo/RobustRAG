@@ -23,11 +23,7 @@ def parse_args():
     # LLM settings
     parser.add_argument("--local_rank", type=int, default=0, help="Local rank passed from distributed launcher")
     parser.add_argument('--model_name', type=str, default='mistral7b',choices=['mistral7b', 'llama3b', 'gpt-4o', 'o1-mini', 'deepseek7b', 'llama1b', 'tai_llama8b','tai_mistral7b'],help='model name')
-<<<<<<< Updated upstream
-    parser.add_argument('--dataset_name', type=str, default='realtimeqa',choices=['realtimeqa-mc','realtimeqa','open_nq','biogen', 'simpleqa', 'triviaqa', 'simpleqa_sorted', 'realtimeqa_sorted', 'triviaqa_sorted', 'open_nq_sorted', 'simpleqa_sorted_answer_based', 'realtimeqa_allrel', 'realtimeqa_allrel_perturb'],help='dataset name')
-=======
-    parser.add_argument('--dataset_name', type=str, default='realtimeqa',choices=['realtimeqa-mc','realtimeqa','open_nq','biogen', 'simpleqa', 'triviaqa', 'simpleqa_sorted', 'realtimeqa_sorted', 'triviaqa_sorted', 'open_nq_sorted', 'simpleqa_sorted_answer_based'],help='dataset name')
->>>>>>> Stashed changes
+    parser.add_argument('--dataset_name', type=str, default='realtimeqa',choices=['realtimeqa-mc','realtimeqa','open_nq','biogen', 'simpleqa', 'triviaqa', 'simpleqa_sorted', 'realtimeqa_sorted', 'triviaqa_sorted', 'open_nq_sorted', 'simpleqa_sorted_answer_based', 'realtimeqa_allrel', 'realtimeqa_allrel_perturb', 'open_nq_allrel_perturb'],help='dataset name')
     parser.add_argument('--model_dir', type=str, help='directory for huggingface models')
     parser.add_argument('--rep', type=int, default=1, help='number of times to repeat querying')
     parser.add_argument('--top_k', type=int, default=10,help='top k retrieval')
