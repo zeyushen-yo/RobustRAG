@@ -1,6 +1,6 @@
 rep_idx,acc,asr,initial_acc,initial_asr,input_tokens,output_tokens,total_time_sec,defense_method,gamma,attack_method,attackpos,model_name,dataset_name,dataset_size
-0,0.524,0.108,0.524,0.108,14736798,370039,436.1,keyword,1.0,PIA,49,mistral7b,triviaqa_sorted,500
-1,0.524,0.106,0.524,0.106,14736787,370016,436.4,keyword,1.0,PIA,49,mistral7b,triviaqa_sorted,500
-2,0.524,0.108,0.524,0.108,14736751,370097,436.55,keyword,1.0,PIA,49,mistral7b,triviaqa_sorted,500
-3,0.526,0.108,0.526,0.108,14736793,370021,435.21,keyword,1.0,PIA,49,mistral7b,triviaqa_sorted,500
-0,0.522,0.108,0.522,0.108,14736803,369952,433.95,keyword,1.0,PIA,49,mistral7b,triviaqa_sorted,500
+0,0.55,0.106,0.55,0.106,14736808,370066,432.59,keyword,1.0,PIA,49,mistral7b,triviaqa_sorted,500
+1,0.562,0.11,0.56,0.11,14736692,369981,433.59,keyword,1.0,PIA,49,mistral7b,triviaqa_sorted,500
+0,0.55,0.108,0.55,0.108,14736859,370060,431.27,keyword,1.0,PIA,49,mistral7b,triviaqa_sorted,500
+0,0.54,0.104,0.536,0.104,14736852,370014,472.15,keyword,1.0,PIA,49,mistral7b,triviaqa_sorted,500
+1,0.544,0.106,0.544,0.106,14736748,370014,471.96,keyword,1.0,PIA,49,mistral7b,triviaqa_sorted,500
