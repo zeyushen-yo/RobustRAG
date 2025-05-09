@@ -1,0 +1,16 @@
+defense	attack	attack_positionsr
+Vanilla RAG	PIA	1	0.5380
+Vanilla RAG	PIA	25	0.7700
+Vanilla RAG	PIA	50	0.8540
+AstuteRAG	PIA	1	0.3148
+AstuteRAG	PIA	25	0.5232
+AstuteRAG	PIA	50	0.6124
+Sampling+MIS	PIA	1	0.3140
+Sampling+MIS	PIA	25	0.0632
+Sampling+MIS	PIA	50	0.0384
+InstructRAG (ICL)	PIA	1	0.5348
+InstructRAG (ICL)	PIA	25	0.6468
+InstructRAG (ICL)	PIA	50	0.6656
+RobustRAG (Keyword)	PIA	1	0.1156
+RobustRAG (Keyword)	PIA	25	0.1080
+RobustRAG (Keyword)	PIA	50	0.1068

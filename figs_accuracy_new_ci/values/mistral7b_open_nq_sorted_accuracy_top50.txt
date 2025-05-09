@@ -1,0 +1,16 @@
+defense	attack	attack_position	accuracy
+Vanilla RAG	PIA	1	0.4012
+Vanilla RAG	PIA	25	0.2096
+Vanilla RAG	PIA	50	0.1488
+AstuteRAG	PIA	1	0.5040
+AstuteRAG	PIA	25	0.4345
+AstuteRAG	PIA	50	0.3970
+Sampling+MIS	PIA	1	0.5260
+Sampling+MIS	PIA	25	0.5876
+Sampling+MIS	PIA	50	0.5912
+InstructRAG (ICL)	PIA	1	0.5108
+InstructRAG (ICL)	PIA	25	0.3804
+InstructRAG (ICL)	PIA	50	0.3176
+RobustRAG (Keyword)	PIA	1	0.4752
+RobustRAG (Keyword)	PIA	25	0.4772
+RobustRAG (Keyword)	PIA	50	0.4768

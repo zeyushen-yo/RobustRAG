@@ -7,7 +7,6 @@ class InstructRAG_ICL(RRAG):
     """
         InstructRAG-ICL
         Source: https://github.com/HuichiZhou/TrustRAG/blob/main/defend_module.py
-        todo: sampling_params
     """
     def __init__(
         self, 
@@ -91,8 +90,6 @@ class AstuteRAG(RRAG):
     """
         AstuteRAG
         Source: https://github.com/HuichiZhou/TrustRAG/blob/main/defend_module.py
-        todo: sampling_params
-        todo: t>1 not implemented yet (iterative consolidation)
     """
     def __init__(
         self, 

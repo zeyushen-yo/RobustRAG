@@ -1,7 +1,6 @@
 rep_idx,acc,asr,initial_acc,initial_asr,input_tokens,output_tokens,total_time_sec,defense_method,gamma,attack_method,attackpos,model_name,dataset_name,dataset_size
-0,0.414,0.282,0.424,0.282,7861019,166618,784.03,sampleMIS,0.9,PIA,0,mistral7b,open_nq_sorted,500
-1,0.452,0.25,0.458,0.25,7856042,166635,792.23,sampleMIS,0.9,PIA,0,mistral7b,open_nq_sorted,500
-2,0.426,0.298,0.426,0.298,7876730,166370,785.65,sampleMIS,0.9,PIA,0,mistral7b,open_nq_sorted,500
-0,0.43,0.292,0.434,0.292,7868775,166590,844.62,sampleMIS,0.9,PIA,0,mistral7b,open_nq_sorted,500
-1,0.432,0.284,0.43,0.284,7885390,166576,844.3,sampleMIS,0.9,PIA,0,mistral7b,open_nq_sorted,500
-
+0,0.544,0.18,0.548,0.18,8233817,152393,390.32,sampleMIS,0.9,PIA,0,mistral7b,open_nq_sorted,500
+1,0.524,0.188,0.52,0.188,8266474,151821,391.84,sampleMIS,0.9,PIA,0,mistral7b,open_nq_sorted,500
+2,0.522,0.198,0.524,0.198,8252274,152734,388.95,sampleMIS,0.9,PIA,0,mistral7b,open_nq_sorted,500
+3,0.538,0.192,0.55,0.192,8242367,152036,384.53,sampleMIS,0.9,PIA,0,mistral7b,open_nq_sorted,500
+4,0.502,0.214,0.504,0.214,8252887,152349,387.88,sampleMIS,0.9,PIA,0,mistral7b,open_nq_sorted,500

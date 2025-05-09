@@ -3,9 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 def init_plot_font_size():
-    SMALL_SIZE = 14
-    MEDIUM_SIZE = 18
-    BIGGER_SIZE = 20
+    SMALL_SIZE = 18
+    MEDIUM_SIZE = 20
+    BIGGER_SIZE = 2
 
     plt.rc('font', size=MEDIUM_SIZE)
     plt.rc('axes', titlesize=SMALL_SIZE)
@@ -71,8 +71,8 @@ def compute_fraction_with_answer(dataset, d, name):
         plt.text(median_val + 0.01, 5, f'Median = {median_val:.2f}', color='blue', rotation=90, va='bottom')
 
         plt.title(f"{name} (n={len(data)})")
-        plt.xlabel("Fraction of contexts with a correct answer")
-        plt.ylabel("Cumulative % of questions")
+        plt.xlabel("Fraction of documents with\na correct answer")
+        plt.ylabel("Cumulative % of\nquestions")
         plt.grid(True)
         plt.xlim([0, 1])
         plt.ylim([0, 100])
